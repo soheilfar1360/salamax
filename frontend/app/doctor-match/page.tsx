@@ -1,7 +1,32 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+
+type VisitMode = "online" | "in_person" | "any";
+type Priority =
+  | "distance"
+  | "specialty"
+  | "rating"
+  | "availability"
+  | "punctuality"
+  | "balanced";
+
+type Weights = {
+  specialty: number;
+  distance: number;
+  rating: number;
+  availability: number;
+  punctuality: number;
+  visitMode: number;
+};
+
+type VisitPreference = {
+  visitMode: VisitMode;
+  priority: Priority;
+  weights: Weights;
+  createdAt: string;
+};
 
 type BodyMapData = {
   viewMode: "front" | "back";
@@ -46,8 +71,13 @@ type Doctor = {
   rating: number;
   clinic: string;
   address: string;
+  visitModes: Array<"online" | "in_person">;
+  punctualityScore: number;
+  nextAvailableMinutes: number;
+  consultationFee: number;
   match_score: number;
   is_recommended: boolean;
+  whyRecommended: string;
 };
 
 type DoctorMatchResponse = {
@@ -55,10 +85,28 @@ type DoctorMatchResponse = {
   selected_label: string | null;
   pain_level: number;
   matching_basis: "محل درد" | "دلیل مراجعه" | "اطلاعات اولیه";
+  visitPreference: VisitPreference;
   doctors: Doctor[];
 };
 
-const doctors = [
+const defaultPreference: VisitPreference = {
+  visitMode: "any",
+  priority: "balanced",
+  weights: {
+    specialty: 0.25,
+    distance: 0.15,
+    rating: 0.2,
+    availability: 0.15,
+    punctuality: 0.15,
+    visitMode: 0.1,
+  },
+  createdAt: "",
+};
+
+const doctors: Omit<
+  Doctor,
+  "match_score" | "is_recommended" | "whyRecommended"
+>[] = [
   {
     id: 1,
     name: "دکتر نازنین احمدی",
@@ -70,6 +118,10 @@ const doctors = [
     rating: 4.8,
     clinic: "کلینیک سلامت نوین",
     address: "خیابان ولیعصر، بالاتر از پارک ملت",
+    visitModes: ["online", "in_person"],
+    punctualityScore: 88,
+    nextAvailableMinutes: 180,
+    consultationFee: 420000,
   },
   {
     id: 2,
@@ -82,6 +134,10 @@ const doctors = [
     rating: 4.7,
     clinic: "درمانگاه سینا",
     address: "میدان ونک، خیابان گاندی",
+    visitModes: ["online"],
+    punctualityScore: 91,
+    nextAvailableMinutes: 960,
+    consultationFee: 390000,
   },
   {
     id: 3,
@@ -94,6 +150,10 @@ const doctors = [
     rating: 4.6,
     clinic: "مرکز درمانی مهر",
     address: "خیابان مطهری، نرسیده به سهروردی",
+    visitModes: ["online", "in_person"],
+    punctualityScore: 84,
+    nextAvailableMinutes: 270,
+    consultationFee: 280000,
   },
   {
     id: 4,
@@ -106,6 +166,10 @@ const doctors = [
     rating: 4.9,
     clinic: "کلینیک استخوان و مفصل آریا",
     address: "خیابان شریعتی، بالاتر از میرداماد",
+    visitModes: ["in_person"],
+    punctualityScore: 86,
+    nextAvailableMinutes: 1320,
+    consultationFee: 520000,
   },
   {
     id: 5,
@@ -118,6 +182,10 @@ const doctors = [
     rating: 4.9,
     clinic: "کلینیک قلب آرام",
     address: "خیابان نلسون ماندلا، کوچه ناهید",
+    visitModes: ["online", "in_person"],
+    punctualityScore: 93,
+    nextAvailableMinutes: 225,
+    consultationFee: 560000,
   },
   {
     id: 6,
@@ -130,6 +198,10 @@ const doctors = [
     rating: 4.7,
     clinic: "کلینیک نورون",
     address: "خیابان پاسداران، بوستان نهم",
+    visitModes: ["online", "in_person"],
+    punctualityScore: 89,
+    nextAvailableMinutes: 2340,
+    consultationFee: 540000,
   },
   {
     id: 7,
@@ -142,6 +214,10 @@ const doctors = [
     rating: 4.8,
     clinic: "کلینیک گوارش سپید",
     address: "خیابان مطهری، خیابان فجر",
+    visitModes: ["in_person"],
+    punctualityScore: 82,
+    nextAvailableMinutes: 1095,
+    consultationFee: 470000,
   },
   {
     id: 8,
@@ -154,6 +230,10 @@ const doctors = [
     rating: 4.6,
     clinic: "مرکز توان‌بخشی حرکت",
     address: "خیابان شریعتی، حوالی قلهک",
+    visitModes: ["online", "in_person"],
+    punctualityScore: 87,
+    nextAvailableMinutes: 135,
+    consultationFee: 360000,
   },
 ];
 
@@ -193,13 +273,11 @@ function getPreferredKeysFromVisitReason(reason?: string) {
     case "بررسی جواب آزمایش":
       return ["internal", "general"];
     case "تمدید نسخه":
-      return ["general", "internal"];
     case "مشاوره تخصصی":
+    case "مشاوره دارویی":
       return ["general", "internal"];
     case "پیگیری بیماری قبلی":
       return ["internal", "general"];
-    case "مشاوره دارویی":
-      return ["general", "internal"];
     default:
       return ["general"];
   }
@@ -220,33 +298,111 @@ function getSpecialtyTitle(keys: string[]) {
   return keys.map((key) => labels[key] ?? key).join(" / ");
 }
 
+function getPreference() {
+  return (
+    safeReadStorage<VisitPreference>("salamax_visit_preference") ??
+    defaultPreference
+  );
+}
+
+function getDistanceScore(distanceKm: number, visitMode: VisitMode) {
+  if (visitMode === "online") return 100;
+
+  const maxDistanceKm = Math.max(...doctors.map((doctor) => doctor.distance_km));
+  return Math.round(Math.max(0, 100 - (distanceKm / maxDistanceKm) * 100));
+}
+
+function getAvailabilityScore(nextAvailableMinutes: number) {
+  const maxMinutes = Math.max(
+    ...doctors.map((doctor) => doctor.nextAvailableMinutes)
+  );
+  return Math.round(Math.max(0, 100 - (nextAvailableMinutes / maxMinutes) * 100));
+}
+
+function getSpecialtyScore(specialtyKey: string, preferredKeys: string[]) {
+  const index = preferredKeys.indexOf(specialtyKey);
+  if (index === 0) return 100;
+  if (index > 0) return 82;
+  if (specialtyKey === "general") return 70;
+  return 35;
+}
+
+function getVisitModeScore(doctor: (typeof doctors)[number], visitMode: VisitMode) {
+  if (visitMode === "any") return 100;
+  return doctor.visitModes.includes(visitMode) ? 100 : 0;
+}
+
+function getWhyRecommended(
+  doctor: Doctor,
+  preferredKeys: string[],
+  preference: VisitPreference
+) {
+  const reasons: string[] = [];
+
+  if (preferredKeys.includes(doctor.specialty_key)) {
+    reasons.push("تخصص پزشک با مسیر مراجعه مرتبط است");
+  }
+
+  if (preference.visitMode === "online" && doctor.visitModes.includes("online")) {
+    reasons.push("امکان ویزیت آنلاین دارد");
+  }
+
+  if (
+    preference.visitMode === "in_person" &&
+    doctor.visitModes.includes("in_person")
+  ) {
+    reasons.push("برای ویزیت حضوری قابل انتخاب است");
+  }
+
+  if (preference.priority === "distance") {
+    reasons.push(`فاصله ثبت‌شده ${doctor.distance} است`);
+  }
+
+  if (preference.priority === "availability") {
+    reasons.push(`اولین نوبت: ${doctor.available}`);
+  }
+
+  if (preference.priority === "punctuality") {
+    reasons.push(`امتیاز خوش‌قولی ${doctor.punctualityScore} از ۱۰۰ است`);
+  }
+
+  if (preference.priority === "rating") {
+    reasons.push(`امتیاز کاربران ${doctor.rating} از ۵ است`);
+  }
+
+  return reasons.length
+    ? reasons.join("، ")
+    : "بر اساس ترکیب تخصص، دسترسی، امتیاز و اولویت‌های شما پیشنهاد شده است";
+}
+
 function calculateScore(
   doctor: (typeof doctors)[number],
   preferredKeys: string[],
-  painLevel: number
+  preference: VisitPreference
 ) {
-  const specialtyScore = preferredKeys.includes(doctor.specialty_key) ? 54 : 10;
-  const priorityScore =
-    preferredKeys.indexOf(doctor.specialty_key) >= 0
-      ? Math.max(0, 12 - preferredKeys.indexOf(doctor.specialty_key) * 4)
-      : 0;
-  const ratingScore = doctor.rating * 5;
-  const distanceScore = Math.max(0, 18 - doctor.distance_km * 2);
-  const urgentBonus =
-    painLevel >= 8 && doctor.available.includes("امروز") ? 8 : 0;
+  const specialtyScore = getSpecialtyScore(doctor.specialty_key, preferredKeys);
+  const distanceScore = getDistanceScore(doctor.distance_km, preference.visitMode);
+  const ratingScore = Math.round((doctor.rating / 5) * 100);
+  const availabilityScore = getAvailabilityScore(doctor.nextAvailableMinutes);
+  const visitModeScore = getVisitModeScore(doctor, preference.visitMode);
+  const weights = preference.weights;
 
-  return Math.min(
-    99,
-    Math.round(
-      specialtyScore + priorityScore + ratingScore + distanceScore + urgentBonus
-    )
-  );
+  const finalScore =
+    specialtyScore * weights.specialty +
+    distanceScore * weights.distance +
+    ratingScore * weights.rating +
+    availabilityScore * weights.availability +
+    doctor.punctualityScore * weights.punctuality +
+    visitModeScore * weights.visitMode;
+
+  return Math.round(finalScore);
 }
 
 function buildDoctorMatch(
   bodyMap: BodyMapData | null,
   visitReason: VisitReasonData | null,
-  triageResult: TriageResponse | null
+  triageResult: TriageResponse | null,
+  preference: VisitPreference
 ): DoctorMatchResponse {
   const matchingBasis = bodyMap
     ? "محل درد"
@@ -259,11 +415,25 @@ function buildDoctorMatch(
   const painLevel = bodyMap?.painLevel ?? 3;
 
   const ranked = doctors
-    .map((doctor) => ({
-      ...doctor,
-      match_score: calculateScore(doctor, preferredKeys, painLevel),
-      is_recommended: preferredKeys.includes(doctor.specialty_key),
-    }))
+    .map((doctor) => {
+      const score = calculateScore(doctor, preferredKeys, preference);
+      const isRecommended = preferredKeys.includes(doctor.specialty_key);
+      const enrichedDoctor = {
+        ...doctor,
+        match_score: score,
+        is_recommended: isRecommended,
+        whyRecommended: "",
+      };
+
+      return {
+        ...enrichedDoctor,
+        whyRecommended: getWhyRecommended(
+          enrichedDoctor,
+          preferredKeys,
+          preference
+        ),
+      };
+    })
     .sort((first, second) => second.match_score - first.match_score);
 
   return {
@@ -271,6 +441,7 @@ function buildDoctorMatch(
     selected_label: bodyMap?.selectedLabel ?? visitReason?.reason ?? null,
     pain_level: painLevel,
     matching_basis: matchingBasis,
+    visitPreference: preference,
     doctors: ranked,
   };
 }
@@ -296,29 +467,71 @@ function getMatchingBasisText(basis: DoctorMatchResponse["matching_basis"]) {
   return "بر اساس اطلاعات اولیه";
 }
 
+function getVisitModeLabel(visitMode: VisitMode) {
+  if (visitMode === "online") return "ویزیت آنلاین";
+  if (visitMode === "in_person") return "ویزیت حضوری";
+  return "فرقی ندارد";
+}
+
+function getPriorityLabel(priority: Priority) {
+  const labels: Record<Priority, string> = {
+    distance: "نزدیک‌ترین پزشک",
+    specialty: "تخصص مرتبط‌تر",
+    rating: "بالاترین امتیاز",
+    availability: "زودترین نوبت",
+    punctuality: "کمترین احتمال تأخیر",
+    balanced: "تعادل همه موارد",
+  };
+
+  return labels[priority];
+}
+
+function getVisitModesLabel(visitModes: Doctor["visitModes"]) {
+  if (visitModes.includes("online") && visitModes.includes("in_person")) {
+    return "آنلاین / حضوری";
+  }
+
+  if (visitModes.includes("online")) return "آنلاین";
+  return "حضوری";
+}
+
+function formatFee(fee: number) {
+  return `${fee.toLocaleString("fa-IR")} تومان`;
+}
+
 export default function DoctorMatchPage() {
-  const [intakeData] = useState<IntakeData | null>(() =>
-    safeReadStorage<IntakeData>("salamax_intake")
-  );
-  const [bodyMapData] = useState<BodyMapData | null>(() =>
-    safeReadStorage<BodyMapData>("salamax_body_map")
-  );
-  const [visitReasonData] = useState<VisitReasonData | null>(() =>
-    safeReadStorage<VisitReasonData>("salamax_visit_reason")
-  );
-  const [triageResult] = useState<TriageResponse | null>(() =>
-    safeReadStorage<TriageResponse>("salamax_triage_result")
-  );
+  const [intakeData, setIntakeData] = useState<IntakeData | null>(null);
+  const [bodyMapData, setBodyMapData] = useState<BodyMapData | null>(null);
+  const [visitReasonData, setVisitReasonData] =
+    useState<VisitReasonData | null>(null);
+  const [triageResult, setTriageResult] = useState<TriageResponse | null>(null);
+  const [visitPreference, setVisitPreference] =
+    useState<VisitPreference>(defaultPreference);
+
+  useEffect(() => {
+    void Promise.resolve().then(() => {
+      setIntakeData(safeReadStorage<IntakeData>("salamax_intake"));
+      setBodyMapData(safeReadStorage<BodyMapData>("salamax_body_map"));
+      setVisitReasonData(
+        safeReadStorage<VisitReasonData>("salamax_visit_reason")
+      );
+      setTriageResult(safeReadStorage<TriageResponse>("salamax_triage_result"));
+      setVisitPreference(getPreference());
+    });
+  }, []);
 
   const doctorMatch = useMemo(() => {
-    const match = buildDoctorMatch(bodyMapData, visitReasonData, triageResult);
+    return buildDoctorMatch(
+      bodyMapData,
+      visitReasonData,
+      triageResult,
+      visitPreference
+    );
+  }, [bodyMapData, triageResult, visitReasonData, visitPreference]);
 
-    if (typeof window !== "undefined") {
-      localStorage.setItem("salamax_doctor_match", JSON.stringify(match));
-    }
-
-    return match;
-  }, [bodyMapData, triageResult, visitReasonData]);
+  useEffect(() => {
+    localStorage.setItem("salamax_doctor_match", JSON.stringify(doctorMatch));
+  }, [doctorMatch]);
 
   function handleSelectDoctor(doctor: Doctor) {
     const bookingData = {
@@ -330,6 +543,11 @@ export default function DoctorMatchPage() {
       distance: doctor.distance,
       rating: doctor.rating,
       matchScore: doctor.match_score,
+      visitModes: doctor.visitModes,
+      punctualityScore: doctor.punctualityScore,
+      nextAvailableMinutes: doctor.nextAvailableMinutes,
+      consultationFee: doctor.consultationFee,
+      whyRecommended: doctor.whyRecommended,
       selectedAt: new Date().toISOString(),
     };
 
@@ -349,19 +567,19 @@ export default function DoctorMatchPage() {
               </h1>
 
               <p className="mt-3 max-w-3xl leading-8 text-gray-600">
-                این پیشنهادها با منطق frontend sandbox و بر اساس{" "}
+                این پیشنهادها بر اساس{" "}
                 <span className="font-bold">
                   {getMatchingBasisText(doctorMatch.matching_basis)}
                 </span>{" "}
-                رتبه‌بندی شده‌اند.
+                و اولویت‌های انتخاب پزشک شما رتبه‌بندی شده‌اند.
               </p>
             </div>
 
             <Link
-              href="/results"
+              href="/visit-preference"
               className="rounded-xl border border-gray-300 px-5 py-3 text-center text-gray-700 hover:bg-gray-50"
             >
-              بازگشت به نتیجه تحلیل
+              اصلاح اولویت‌ها
             </Link>
           </div>
 
@@ -375,26 +593,25 @@ export default function DoctorMatchPage() {
             </div>
           )}
 
-          <div className="mt-8 grid gap-5 md:grid-cols-4">
+          <div className="mt-8 grid gap-5 md:grid-cols-5">
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900 md:col-span-2">
               <h2 className="font-bold">مبنای تطبیق</h2>
-
               <p className="mt-3 leading-7">
                 {getMatchingBasisText(doctorMatch.matching_basis)}
               </p>
             </div>
 
             <div className="rounded-2xl border border-teal-200 bg-teal-50 p-5 text-teal-900">
-              <h2 className="font-bold">
-                {bodyMapData
-                  ? "ناحیه ثبت‌شده"
-                  : visitReasonData
-                  ? "دلیل مراجعه"
-                  : "اطلاعات اولیه"}
-              </h2>
-
+              <h2 className="font-bold">نوع ویزیت</h2>
               <p className="mt-3 leading-7">
-                {doctorMatch.selected_label ?? "اطلاعاتی ثبت نشده"}
+                {getVisitModeLabel(visitPreference.visitMode)}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-teal-200 bg-teal-50 p-5 text-teal-900">
+              <h2 className="font-bold">اولویت بیمار</h2>
+              <p className="mt-3 leading-7">
+                {getPriorityLabel(visitPreference.priority)}
               </p>
             </div>
 
@@ -404,7 +621,6 @@ export default function DoctorMatchPage() {
               )}`}
             >
               <h2 className="font-bold">درجه هشدار</h2>
-
               <p className="mt-3 leading-7">
                 {triageResult?.risk_label ?? "نامشخص"}
               </p>
@@ -431,8 +647,7 @@ export default function DoctorMatchPage() {
               </h2>
 
               <p className="mt-2 text-teal-800">
-                {bestDoctor.specialty} | امتیاز تطبیق:{" "}
-                {bestDoctor.match_score}٪
+                {bestDoctor.specialty} | امتیاز تطبیق: {bestDoctor.match_score}٪
               </p>
             </div>
           )}
@@ -473,7 +688,10 @@ export default function DoctorMatchPage() {
                       {doctor.address}
                     </p>
 
-                    <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-700">
+                    <div className="mt-4 grid gap-3 text-sm text-gray-700 sm:grid-cols-2 lg:grid-cols-3">
+                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                        نوع ویزیت: {getVisitModesLabel(doctor.visitModes)}
+                      </span>
                       <span className="rounded-full bg-slate-100 px-4 py-2">
                         فاصله: {doctor.distance}
                       </span>
@@ -481,12 +699,23 @@ export default function DoctorMatchPage() {
                         امتیاز پزشک: {doctor.rating}
                       </span>
                       <span className="rounded-full bg-slate-100 px-4 py-2">
+                        خوش‌قولی: {doctor.punctualityScore}٪
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-4 py-2">
                         اولین نوبت: {doctor.available}
                       </span>
                       <span className="rounded-full bg-teal-100 px-4 py-2 text-teal-900">
                         امتیاز تطبیق: {doctor.match_score}٪
                       </span>
+                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                        تعرفه نمونه: {formatFee(doctor.consultationFee)}
+                      </span>
                     </div>
+
+                    <p className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm leading-7 text-blue-900">
+                      <span className="font-bold">دلیل پیشنهاد:</span>{" "}
+                      {doctor.whyRecommended}
+                    </p>
                   </div>
 
                   <div className="flex min-w-[170px] flex-col gap-3">
@@ -506,7 +735,8 @@ export default function DoctorMatchPage() {
           <div className="mt-8 rounded-2xl border border-yellow-200 bg-yellow-50 p-5 text-sm leading-7 text-yellow-900">
             این سامانه تشخیص قطعی پزشکی ارائه نمی‌دهد و صرفاً برای راهنمایی
             اولیه و هدایت مسیر مراجعه طراحی شده است. رتبه‌بندی پزشکان در این
-            نسخه sandbox بر اساس داده‌های نمونه انجام می‌شود.
+            نسخه sandbox بر اساس داده‌های نمونه و اولویت‌های انتخاب‌شده انجام
+            می‌شود.
           </div>
         </div>
       </div>

@@ -60,6 +60,7 @@ type DocumentAnalysis = {
   recommendedSpecialtyHint: string;
   confidence: "low" | "medium" | "high";
   safetyDisclaimer: string;
+  isMock?: boolean;
   fileName?: string;
 };
 
@@ -475,9 +476,16 @@ export default function ResultsPage() {
                   key={`${analysis.fileName ?? analysis.documentType}-${index}`}
                   className="rounded-2xl border border-teal-200 bg-white p-5"
                 >
-                  <h3 className="font-bold text-blue-900">
-                    {analysis.fileName ?? `مدرک ${index + 1}`}
-                  </h3>
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <h3 className="font-bold text-blue-900">
+                      {analysis.fileName ?? `مدرک ${index + 1}`}
+                    </h3>
+                    {analysis.isMock && (
+                      <span className="w-fit rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-800">
+                        Mock Analysis
+                      </span>
+                    )}
+                  </div>
                   <p className="mt-3 leading-8 text-gray-700">
                     <span className="font-bold">خلاصه پزشک:</span>{" "}
                     {analysis.doctorFacingSummary}
@@ -505,10 +513,10 @@ export default function ResultsPage() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            href="/doctor-match"
+            href="/visit-preference"
             className="rounded-xl bg-blue-900 px-6 py-3 text-center text-white hover:bg-blue-800"
           >
-            مشاهده پزشکان پیشنهادی
+            تنظیم اولویت و انتخاب پزشک
           </Link>
 
           <Link

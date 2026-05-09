@@ -7,65 +7,20 @@ import { useRouter } from "next/navigation";
 
 type ViewMode = "front" | "back";
 
-type RegionId =
-  | "head"
-  | "neck"
-  | "chest"
-  | "abdomen"
-  | "pelvis"
-  | "left-arm"
-  | "right-arm"
-  | "left-hand"
-  | "right-hand"
-  | "left-thigh"
-  | "right-thigh"
-  | "left-knee"
-  | "right-knee"
-  | "left-leg"
-  | "right-leg"
-  | "left-foot"
-  | "right-foot"
-  | "upper-back"
-  | "lower-back"
-  | "left-shoulder"
-  | "right-shoulder";
-
-const regionLabels: Record<RegionId, string> = {
-  head: "سر",
-  neck: "گردن",
-  chest: "قفسه سینه",
-  abdomen: "شکم",
-  pelvis: "لگن",
-  "left-arm": "دست چپ",
-  "right-arm": "دست راست",
-  "left-hand": "کف دست چپ",
-  "right-hand": "کف دست راست",
-  "left-thigh": "ران چپ",
-  "right-thigh": "ران راست",
-  "left-knee": "زانوی چپ",
-  "right-knee": "زانوی راست",
-  "left-leg": "ساق پای چپ",
-  "right-leg": "ساق پای راست",
-  "left-foot": "پای چپ",
-  "right-foot": "پای راست",
-  "upper-back": "پشت قفسه سینه",
-  "lower-back": "کمر",
-  "left-shoulder": "شانه چپ",
-  "right-shoulder": "شانه راست",
-};
-
-type Hotspot = {
-  id: RegionId;
-  className: string;
-  rounded?: string;
-};
-
 type IntakeData = {
   chiefComplaint: string;
   detectedFlow: "pain_flow" | "general_visit_flow" | "emergency_flow";
   hasPain: boolean;
   requiresBodyMap: boolean;
   createdAt: string;
+};
+
+type PainMarker = {
+  id: string;
+  viewMode: ViewMode;
+  xPercent: number;
+  yPercent: number;
+  label: string;
 };
 
 function safeReadStorage<T>(key: string): T | null {
@@ -79,191 +34,23 @@ function safeReadStorage<T>(key: string): T | null {
   }
 }
 
-const frontHotspots: Hotspot[] = [
-  {
-    id: "head",
-    className: "top-[18px] left-1/2 -translate-x-1/2 w-[76px] h-[92px]",
-    rounded: "rounded-full",
-  },
-  {
-    id: "neck",
-    className: "top-[108px] left-1/2 -translate-x-1/2 w-[56px] h-[36px]",
-    rounded: "rounded-xl",
-  },
-  {
-    id: "chest",
-    className: "top-[145px] left-1/2 -translate-x-1/2 w-[150px] h-[95px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "abdomen",
-    className: "top-[238px] left-1/2 -translate-x-1/2 w-[128px] h-[100px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "pelvis",
-    className: "top-[338px] left-1/2 -translate-x-1/2 w-[112px] h-[62px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-arm",
-    className: "top-[158px] left-[8px] w-[70px] h-[178px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-arm",
-    className: "top-[158px] right-[8px] w-[70px] h-[178px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-hand",
-    className: "top-[326px] left-[0px] w-[70px] h-[86px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-hand",
-    className: "top-[326px] right-[0px] w-[70px] h-[86px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-thigh",
-    className: "top-[404px] left-[106px] w-[52px] h-[132px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-thigh",
-    className: "top-[404px] right-[106px] w-[52px] h-[132px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-knee",
-    className: "top-[536px] left-[106px] w-[52px] h-[42px]",
-    rounded: "rounded-2xl",
-  },
-  {
-    id: "right-knee",
-    className: "top-[536px] right-[106px] w-[52px] h-[42px]",
-    rounded: "rounded-2xl",
-  },
-  {
-    id: "left-leg",
-    className: "top-[578px] left-[110px] w-[46px] h-[150px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-leg",
-    className: "top-[578px] right-[110px] w-[46px] h-[150px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-foot",
-    className: "top-[726px] left-[98px] w-[60px] h-[52px]",
-    rounded: "rounded-2xl",
-  },
-  {
-    id: "right-foot",
-    className: "top-[726px] right-[98px] w-[60px] h-[52px]",
-    rounded: "rounded-2xl",
-  },
-];
+function getViewLabel(viewMode: ViewMode) {
+  return viewMode === "front" ? "نمای جلو" : "نمای پشت";
+}
 
-const backHotspots: Hotspot[] = [
-  {
-    id: "head",
-    className: "top-[18px] left-1/2 -translate-x-1/2 w-[76px] h-[92px]",
-    rounded: "rounded-full",
-  },
-  {
-    id: "neck",
-    className: "top-[106px] left-1/2 -translate-x-1/2 w-[56px] h-[34px]",
-    rounded: "rounded-xl",
-  },
-  {
-    id: "left-shoulder",
-    className: "top-[145px] left-[58px] w-[72px] h-[56px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-shoulder",
-    className: "top-[145px] right-[58px] w-[72px] h-[56px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "upper-back",
-    className: "top-[178px] left-1/2 -translate-x-1/2 w-[150px] h-[105px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "lower-back",
-    className: "top-[286px] left-1/2 -translate-x-1/2 w-[132px] h-[104px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "pelvis",
-    className: "top-[386px] left-1/2 -translate-x-1/2 w-[114px] h-[58px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-arm",
-    className: "top-[158px] left-[6px] w-[74px] h-[190px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-arm",
-    className: "top-[158px] right-[6px] w-[74px] h-[190px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-hand",
-    className: "top-[336px] left-[0px] w-[72px] h-[82px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-hand",
-    className: "top-[336px] right-[0px] w-[72px] h-[82px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-thigh",
-    className: "top-[448px] left-[106px] w-[52px] h-[124px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-thigh",
-    className: "top-[448px] right-[106px] w-[52px] h-[124px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-knee",
-    className: "top-[572px] left-[106px] w-[52px] h-[38px]",
-    rounded: "rounded-2xl",
-  },
-  {
-    id: "right-knee",
-    className: "top-[572px] right-[106px] w-[52px] h-[38px]",
-    rounded: "rounded-2xl",
-  },
-  {
-    id: "left-leg",
-    className: "top-[610px] left-[110px] w-[46px] h-[126px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "right-leg",
-    className: "top-[610px] right-[110px] w-[46px] h-[126px]",
-    rounded: "rounded-3xl",
-  },
-  {
-    id: "left-foot",
-    className: "top-[734px] left-[98px] w-[60px] h-[44px]",
-    rounded: "rounded-2xl",
-  },
-  {
-    id: "right-foot",
-    className: "top-[734px] right-[98px] w-[60px] h-[44px]",
-    rounded: "rounded-2xl",
-  },
-];
+function getSelectedLabel(markerCount: number) {
+  if (markerCount > 1) return "چند نقطه درد ثبت شده";
+  if (markerCount === 1) return "یک نقطه درد ثبت شده";
+  return "نامشخص";
+}
+
+function createMarkerId(viewMode: ViewMode, markerNumber: number) {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+
+  return `pain-marker-${viewMode}-${markerNumber}`;
+}
 
 export default function BodyMapPage() {
   const router = useRouter();
@@ -271,17 +58,16 @@ export default function BodyMapPage() {
   const [isMounted, setIsMounted] = useState(false);
   const [intakeData, setIntakeData] = useState<IntakeData | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("front");
-  const [selectedRegion, setSelectedRegion] = useState<RegionId | null>(null);
+  const [painMarkers, setPainMarkers] = useState<PainMarker[]>([]);
+  const [nextMarkerNumber, setNextMarkerNumber] = useState(1);
   const [painLevel, setPainLevel] = useState(5);
   const [description, setDescription] = useState("");
 
-  const selectedLabel = selectedRegion
-    ? regionLabels[selectedRegion]
-    : "هنوز انتخاب نشده";
-
-  const hotspots = useMemo(() => {
-    return viewMode === "front" ? frontHotspots : backHotspots;
-  }, [viewMode]);
+  const visibleMarkers = useMemo(
+    () => painMarkers.filter((marker) => marker.viewMode === viewMode),
+    [painMarkers, viewMode]
+  );
+  const selectedLabel = getSelectedLabel(painMarkers.length);
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -290,20 +76,45 @@ export default function BodyMapPage() {
     });
   }, []);
 
+  function handleBodyClick(event: React.MouseEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const xPercent = ((event.clientX - rect.left) / rect.width) * 100;
+    const yPercent = ((event.clientY - rect.top) / rect.height) * 100;
+    const markerNumber = nextMarkerNumber;
+
+    setPainMarkers((currentMarkers) => [
+      ...currentMarkers,
+      {
+        id: createMarkerId(viewMode, markerNumber),
+        viewMode,
+        xPercent: Number(xPercent.toFixed(2)),
+        yPercent: Number(yPercent.toFixed(2)),
+        label: `نقطه درد ${markerNumber}`,
+      },
+    ]);
+    setNextMarkerNumber((currentNumber) => currentNumber + 1);
+  }
+
+  function deleteMarker(markerId: string) {
+    setPainMarkers((currentMarkers) =>
+      currentMarkers.filter((marker) => marker.id !== markerId)
+    );
+  }
+
   function handleContinue() {
-    if (!selectedRegion) return;
+    if (painMarkers.length === 0) return;
 
     const bodyMapData = {
       viewMode,
-      selectedRegion,
-      selectedLabel,
+      painMarkers,
       painLevel,
       description,
+      selectedLabel,
+      selectedRegion: null,
       savedAt: new Date().toISOString(),
     };
 
     localStorage.setItem("salamax_body_map", JSON.stringify(bodyMapData));
-
     router.push("/upload");
   }
 
@@ -313,19 +124,19 @@ export default function BodyMapPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-blue-900">
-              انتخاب محل درد
+              ثبت نقاط درد روی بدن
             </h1>
 
             <p className="mt-3 max-w-2xl leading-8 text-gray-600">
-              لطفاً روی ناحیه‌ای از بدن که درد، ناراحتی یا مشکل دارید کلیک کنید.
-              می‌توانید بین نمای جلو و پشت بدن جابه‌جا شوید. این اطلاعات به
-              سامانه کمک می‌کند سؤال‌های دقیق‌تری بپرسد.
+              روی محل درد در تصویر بدن کلیک کنید. می‌توانید چند نقطه درد ثبت
+              کنید. بین نمای جلو و پشت جابه‌جا شوید و هر نقطه‌ای را که لازم
+              است مشخص کنید.
             </p>
           </div>
 
           <div className="rounded-2xl bg-teal-50 px-5 py-4 text-sm text-teal-900">
-            ناحیه انتخاب‌شده:{" "}
-            <span className="font-bold">{selectedLabel}</span>
+            نقاط ثبت‌شده:{" "}
+            <span className="font-bold">{painMarkers.length}</span>
           </div>
         </div>
 
@@ -345,28 +156,32 @@ export default function BodyMapPage() {
         )}
 
         <div className="mt-6 rounded-3xl border border-teal-200 bg-teal-50 p-5 text-teal-950 shadow-sm">
-          <h2 className="font-bold">این مرحله فقط برای درد یا ناراحتی موضعی است</h2>
+          <h2 className="font-bold">
+            این مرحله فقط برای درد یا ناراحتی موضعی است
+          </h2>
           <p className="mt-2 text-sm leading-7">
             اگر دلیل مراجعه شما چکاپ، بررسی آزمایش، تمدید نسخه یا مشاوره بدون
-            درد موضعی است، بهتر است از مسیر دلیل مراجعه ادامه دهید. استفاده از
-            این صفحه برای انتخاب محل درد اختیاری و مخصوص علائم موضعی است.
+            درد موضعی است، بهتر است از مسیر دلیل مراجعه ادامه دهید. این صفحه
+            برای ثبت محل‌های درد یا ناراحتی روی بدن طراحی شده است.
           </p>
         </div>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-2xl border border-gray-200 bg-slate-50 p-6">
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold text-gray-700">
-                مدل دوبعدی بدن
-              </h2>
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-700">
+                  مدل دوبعدی بدن
+                </h2>
+                <p className="mt-2 text-sm leading-7 text-gray-600">
+                  روی تصویر کلیک کنید تا نشانگر درد همان‌جا ثبت شود.
+                </p>
+              </div>
 
               <div className="flex rounded-xl bg-white p-1 shadow-sm">
                 <button
                   type="button"
-                  onClick={() => {
-                    setViewMode("front");
-                    setSelectedRegion(null);
-                  }}
+                  onClick={() => setViewMode("front")}
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                     viewMode === "front"
                       ? "bg-blue-900 text-white"
@@ -378,10 +193,7 @@ export default function BodyMapPage() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    setViewMode("back");
-                    setSelectedRegion(null);
-                  }}
+                  onClick={() => setViewMode("back")}
                   className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
                     viewMode === "back"
                       ? "bg-blue-900 text-white"
@@ -394,7 +206,18 @@ export default function BodyMapPage() {
             </div>
 
             <div className="mx-auto w-full max-w-[360px]">
-              <div className="relative mx-auto h-[780px] w-[320px]">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={handleBodyClick}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                  }
+                }}
+                className="relative mx-auto h-[780px] w-[320px] cursor-crosshair outline-none focus:ring-4 focus:ring-teal-200"
+                aria-label="ثبت نقطه درد روی تصویر بدن"
+              >
                 <Image
                   src={
                     viewMode === "front"
@@ -407,33 +230,61 @@ export default function BodyMapPage() {
                       : "مدل بدن از پشت"
                   }
                   fill
-                  className="object-contain"
+                  className="pointer-events-none object-contain"
                   priority
                 />
 
-                {hotspots.map((spot) => {
-                  const isSelected = selectedRegion === spot.id;
-
-                  return (
-                    <button
-                      key={`${viewMode}-${spot.id}`}
-                      type="button"
-                      onClick={() => setSelectedRegion(spot.id)}
-                      title={regionLabels[spot.id]}
-                      className={[
-                        "absolute z-10 cursor-pointer border-2 transition",
-                        spot.className,
-                        spot.rounded ?? "rounded-xl",
-                        isSelected
-                          ? "border-teal-600 bg-teal-400/35 shadow-md"
-                          : "border-transparent hover:border-teal-500 hover:bg-teal-300/20",
-                      ].join(" ")}
-                    >
-                      <span className="sr-only">{regionLabels[spot.id]}</span>
-                    </button>
-                  );
-                })}
+                {visibleMarkers.map((marker) => (
+                  <button
+                    key={marker.id}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      deleteMarker(marker.id);
+                    }}
+                    title={`${marker.label} - حذف`}
+                    className="absolute z-10 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-red-600 text-xs font-bold text-white shadow-lg ring-4 ring-red-500/25 transition hover:scale-110 hover:bg-red-700"
+                    style={{
+                      left: `${marker.xPercent}%`,
+                      top: `${marker.yPercent}%`,
+                    }}
+                  >
+                    <span className="absolute h-7 w-7 animate-ping rounded-full bg-red-500 opacity-20" />
+                    <span className="relative">
+                      {marker.label.replace("نقطه درد ", "")}
+                    </span>
+                  </button>
+                ))}
               </div>
+            </div>
+
+            <div className="mt-6">
+              <h3 className="font-bold text-blue-900">نقاط درد ثبت‌شده</h3>
+              {painMarkers.length > 0 ? (
+                <div className="mt-3 space-y-3">
+                  {painMarkers.map((marker) => (
+                    <div
+                      key={marker.id}
+                      className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm text-gray-700 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <span>
+                        {marker.label} - {getViewLabel(marker.viewMode)}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => deleteMarker(marker.id)}
+                        className="rounded-lg border border-red-200 px-4 py-2 text-red-700 hover:bg-red-50"
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm leading-7 text-gray-600">
+                  هنوز نقطه‌ای ثبت نشده است.
+                </p>
+              )}
             </div>
           </section>
 
@@ -452,7 +303,7 @@ export default function BodyMapPage() {
                 min="1"
                 max="10"
                 value={painLevel}
-                onChange={(e) => setPainLevel(Number(e.target.value))}
+                onChange={(event) => setPainLevel(Number(event.target.value))}
                 className="mt-4 w-full"
               />
 
@@ -468,16 +319,16 @@ export default function BodyMapPage() {
 
               <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(event) => setDescription(event.target.value)}
                 className="mt-3 h-36 w-full rounded-xl border border-gray-300 p-4 text-right outline-none focus:border-blue-700"
-                placeholder="مثلاً: درد از دیروز شروع شده و هنگام حرکت یا نفس کشیدن بیشتر می‌شود..."
+                placeholder="مثلاً: درد از دیروز شروع شده و هنگام حرکت بیشتر می‌شود..."
                 dir="rtl"
               />
             </div>
 
             <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-7 text-blue-900">
               <p>
-                <span className="font-bold">ناحیه انتخاب‌شده:</span>{" "}
+                <span className="font-bold">وضعیت نقاط درد:</span>{" "}
                 {selectedLabel}
               </p>
 
@@ -487,7 +338,7 @@ export default function BodyMapPage() {
 
               <p className="mt-2">
                 <span className="font-bold">نمای فعلی:</span>{" "}
-                {viewMode === "front" ? "جلو" : "پشت"}
+                {getViewLabel(viewMode)}
               </p>
 
               {description.trim() && (
@@ -498,14 +349,14 @@ export default function BodyMapPage() {
             </div>
 
             <div className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm leading-7 text-yellow-900">
-              اگر درد شدید قفسه سینه، تنگی نفس، ضعف ناگهانی یک سمت بدن، بیهوشی
-              یا خونریزی شدید دارید، منتظر تحلیل سامانه نمانید و فوراً با
-              اورژانس تماس بگیرید.
+              اگر درد شدید قفسه سینه، تنگی نفس، ضعف ناگهانی یک سمت بدن،
+              بیهوشی یا خونریزی شدید دارید، منتظر تحلیل سامانه نمانید و فوراً
+              با اورژانس تماس بگیرید.
             </div>
 
-            {!selectedRegion && (
+            {painMarkers.length === 0 && (
               <p className="mt-4 text-sm text-red-600">
-                برای ادامه، لطفاً یک ناحیه از بدن را انتخاب کنید.
+                برای ادامه، حداقل یک نقطه درد را روی بدن مشخص کنید.
               </p>
             )}
 
@@ -513,9 +364,9 @@ export default function BodyMapPage() {
               <button
                 type="button"
                 onClick={handleContinue}
-                disabled={!selectedRegion}
+                disabled={painMarkers.length === 0}
                 className={`rounded-xl px-6 py-3 text-center text-white transition ${
-                  selectedRegion
+                  painMarkers.length > 0
                     ? "bg-blue-900 hover:bg-blue-800"
                     : "cursor-not-allowed bg-gray-400"
                 }`}

@@ -64,6 +64,21 @@ const responseSchema = {
   ],
 };
 
+const mockQuotaFallback = {
+  documentType: "آزمایش / سند پزشکی",
+  detectedLanguage: "unknown",
+  extractedTextSummary: "تحلیل واقعی انجام نشد چون API credit فعال نیست.",
+  abnormalFindings: [],
+  plainLanguageSummary: "در حالت Sandbox، این پاسخ شبیه‌سازی شده است.",
+  doctorFacingSummary: "Document Agent mock fallback: OpenAI quota unavailable.",
+  triageImpact: "در این حالت اثر واقعی روی تریاژ اعمال نشده است.",
+  recommendedSpecialtyHint: "نامشخص",
+  confidence: "low",
+  safetyDisclaimer:
+    "این خروجی شبیه‌سازی‌شده است و جایگزین تفسیر پزشک نیست.",
+  isMock: true,
+};
+
 function jsonResponse(statusCode: number, body: unknown) {
   return {
     statusCode,
@@ -102,6 +117,15 @@ function getOutputText(responseData: Record<string, unknown>) {
       return typeof text === "string" ? text : "";
     })
     .join("");
+}
+
+function getOpenAiErrorCode(responseData: Record<string, unknown>) {
+  const error = responseData.error;
+
+  if (!error || typeof error !== "object") return "";
+
+  const code = (error as { code?: unknown }).code;
+  return typeof code === "string" ? code : "";
 }
 
 export async function handler(event: NetlifyEvent) {
@@ -213,6 +237,10 @@ ${context}
     >;
 
     if (!openAiResponse.ok) {
+      if (getOpenAiErrorCode(responseData) === "insufficient_quota") {
+        return jsonResponse(200, mockQuotaFallback);
+      }
+
       return jsonResponse(openAiResponse.status, {
         error: "Document analysis failed.",
         details: responseData,

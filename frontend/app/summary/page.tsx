@@ -45,7 +45,35 @@ type SelectedDoctor = {
   distance: string;
   rating: number;
   matchScore: number;
+  visitModes?: Array<"online" | "in_person">;
+  punctualityScore?: number;
+  nextAvailableMinutes?: number;
+  consultationFee?: number;
+  whyRecommended?: string;
   selectedAt: string;
+};
+
+type VisitMode = "online" | "in_person" | "any";
+type Priority =
+  | "distance"
+  | "specialty"
+  | "rating"
+  | "availability"
+  | "punctuality"
+  | "balanced";
+
+type VisitPreference = {
+  visitMode: VisitMode;
+  priority: Priority;
+  weights: {
+    specialty: number;
+    distance: number;
+    rating: number;
+    availability: number;
+    punctuality: number;
+    visitMode: number;
+  };
+  createdAt: string;
 };
 
 type TriageResponse = {
@@ -68,6 +96,7 @@ type BookingConfirmation = {
   intake?: IntakeData | null;
   bodyMap?: BodyMapData | null;
   visitReason?: VisitReasonData | null;
+  visitPreference?: VisitPreference | null;
   uploadedFiles?: UploadedFileInfo[];
   triageResult?: TriageResponse | null;
 };
@@ -89,6 +118,7 @@ type DocumentAnalysis = {
   recommendedSpecialtyHint: string;
   confidence: "low" | "medium" | "high";
   safetyDisclaimer: string;
+  isMock?: boolean;
   fileName?: string;
 };
 
@@ -118,6 +148,25 @@ function getFlowLabel(flow?: DetectedFlow) {
   if (flow === "emergency_flow") return "علائم هشدار";
   if (flow === "general_visit_flow") return "مراجعه عمومی";
   return "ثبت نشده";
+}
+
+function getVisitModeLabel(visitMode?: VisitMode) {
+  if (visitMode === "online") return "آنلاین";
+  if (visitMode === "in_person") return "حضوری";
+  return "فرقی ندارد";
+}
+
+function getPriorityLabel(priority?: Priority) {
+  const labels: Record<Priority, string> = {
+    distance: "نزدیک‌ترین پزشک",
+    specialty: "تخصص مرتبط‌تر",
+    rating: "بالاترین امتیاز",
+    availability: "زودترین نوبت",
+    punctuality: "کمترین احتمال تأخیر",
+    balanced: "تعادل همه موارد",
+  };
+
+  return priority ? labels[priority] : "تعادل همه موارد";
 }
 
 function getRiskStyle(label?: string) {
@@ -159,6 +208,10 @@ export default function SummaryPage() {
   const [documentAnalyses, setDocumentAnalyses] = useState<DocumentAnalysis[]>(
     () => safeReadStorage<DocumentAnalysis[]>("salamax_document_analyses") ?? []
   );
+  const [visitPreference, setVisitPreference] =
+    useState<VisitPreference | null>(() =>
+      safeReadStorage<VisitPreference>("salamax_visit_preference")
+    );
   const [bookingConfirmation, setBookingConfirmation] =
     useState<BookingConfirmation | null>(() =>
       safeReadStorage<BookingConfirmation>("salamax_booking_confirmation")
@@ -168,6 +221,8 @@ export default function SummaryPage() {
     triageResult ?? bookingConfirmation?.triageResult ?? null;
   const effectiveDoctor =
     selectedDoctor ?? bookingConfirmation?.doctor ?? null;
+  const effectiveVisitPreference =
+    visitPreference ?? bookingConfirmation?.visitPreference ?? null;
   const effectiveUploadedFiles =
     uploadedFiles.length > 0
       ? uploadedFiles
@@ -182,6 +237,7 @@ export default function SummaryPage() {
     localStorage.removeItem("salamax_selected_doctor");
     localStorage.removeItem("salamax_triage_result");
     localStorage.removeItem("salamax_document_analyses");
+    localStorage.removeItem("salamax_visit_preference");
     localStorage.removeItem("salamax_doctor_match");
     localStorage.removeItem("salamax_booking_confirmation");
 
@@ -192,6 +248,7 @@ export default function SummaryPage() {
     setSelectedDoctor(null);
     setTriageResult(null);
     setDocumentAnalyses([]);
+    setVisitPreference(null);
     setBookingConfirmation(null);
     router.push("/intake");
   }
@@ -269,6 +326,70 @@ export default function SummaryPage() {
             </p>
           </div>
         </div>
+
+        <section className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-6">
+          <h2 className="text-xl font-bold text-blue-900">
+            اولویت انتخاب پزشک
+          </h2>
+
+          {effectiveVisitPreference ? (
+            <div className="mt-5 space-y-4 text-gray-700">
+              <div className="grid gap-3 md:grid-cols-2">
+                <p>
+                  <span className="font-bold">نوع ویزیت:</span>{" "}
+                  {getVisitModeLabel(effectiveVisitPreference.visitMode)}
+                </p>
+                <p>
+                  <span className="font-bold">اولویت بیمار:</span>{" "}
+                  {getPriorityLabel(effectiveVisitPreference.priority)}
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-white p-4 text-sm leading-7">
+                <h3 className="font-bold text-blue-900">وزن‌دهی تطبیق پزشک</h3>
+                <div className="mt-3 grid gap-2 md:grid-cols-3">
+                  <p>
+                    تخصص:{" "}
+                    {Math.round(effectiveVisitPreference.weights.specialty * 100)}
+                    ٪
+                  </p>
+                  <p>
+                    فاصله:{" "}
+                    {Math.round(effectiveVisitPreference.weights.distance * 100)}
+                    ٪
+                  </p>
+                  <p>
+                    امتیاز:{" "}
+                    {Math.round(effectiveVisitPreference.weights.rating * 100)}٪
+                  </p>
+                  <p>
+                    زودترین نوبت:{" "}
+                    {Math.round(
+                      effectiveVisitPreference.weights.availability * 100
+                    )}
+                    ٪
+                  </p>
+                  <p>
+                    خوش‌قولی:{" "}
+                    {Math.round(
+                      effectiveVisitPreference.weights.punctuality * 100
+                    )}
+                    ٪
+                  </p>
+                  <p>
+                    نوع ویزیت:{" "}
+                    {Math.round(effectiveVisitPreference.weights.visitMode * 100)}
+                    ٪
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-5 text-gray-600">
+              اولویت انتخاب پزشک جداگانه ثبت نشده است.
+            </p>
+          )}
+        </section>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-2xl border border-gray-200 p-6">
@@ -357,6 +478,11 @@ export default function SummaryPage() {
                         {analysis.confidence}
                       </p>
                     </div>
+                    {analysis.isMock && (
+                      <span className="w-fit rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-800">
+                        Mock Analysis
+                      </span>
+                    )}
                   </div>
 
                   <p className="mt-4 leading-8 text-gray-700">
@@ -473,6 +599,16 @@ export default function SummaryPage() {
                   <span className="font-bold">نوبت:</span>{" "}
                   {effectiveDoctor.available}
                 </p>
+                <p>
+                  <span className="font-bold">امتیاز تطبیق:</span>{" "}
+                  {effectiveDoctor.matchScore}٪
+                </p>
+                {effectiveDoctor.whyRecommended && (
+                  <p>
+                    <span className="font-bold">دلیل پیشنهاد:</span>{" "}
+                    {effectiveDoctor.whyRecommended}
+                  </p>
+                )}
               </div>
             ) : (
               <p className="mt-5 text-gray-600">

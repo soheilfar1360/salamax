@@ -27,7 +27,35 @@ type SelectedDoctor = {
   distance: string;
   rating: number;
   matchScore: number;
+  visitModes?: Array<"online" | "in_person">;
+  punctualityScore?: number;
+  nextAvailableMinutes?: number;
+  consultationFee?: number;
+  whyRecommended?: string;
   selectedAt: string;
+};
+
+type VisitMode = "online" | "in_person" | "any";
+type Priority =
+  | "distance"
+  | "specialty"
+  | "rating"
+  | "availability"
+  | "punctuality"
+  | "balanced";
+
+type VisitPreference = {
+  visitMode: VisitMode;
+  priority: Priority;
+  weights: {
+    specialty: number;
+    distance: number;
+    rating: number;
+    availability: number;
+    punctuality: number;
+    visitMode: number;
+  };
+  createdAt: string;
 };
 
 type TriageResponse = {
@@ -65,6 +93,7 @@ type BookingConfirmation = {
   intake: IntakeData | null;
   bodyMap: BodyMapData | null;
   visitReason: VisitReasonData | null;
+  visitPreference?: VisitPreference | null;
   uploadedFiles: UploadedFileInfo[];
   triageResult: TriageResponse | null;
 };
@@ -91,6 +120,25 @@ function getFlowLabel(flow?: IntakeData["detectedFlow"]) {
   return "مراجعه عمومی";
 }
 
+function getVisitModeLabel(visitMode?: VisitMode) {
+  if (visitMode === "online") return "آنلاین";
+  if (visitMode === "in_person") return "حضوری";
+  return "فرقی ندارد";
+}
+
+function getPriorityLabel(priority?: Priority) {
+  const labels: Record<Priority, string> = {
+    distance: "نزدیک‌ترین پزشک",
+    specialty: "تخصص مرتبط‌تر",
+    rating: "بالاترین امتیاز",
+    availability: "زودترین نوبت",
+    punctuality: "کمترین احتمال تأخیر",
+    balanced: "تعادل همه موارد",
+  };
+
+  return priority ? labels[priority] : "تعادل همه موارد";
+}
+
 export default function BookingPage() {
   const [intakeData] = useState<IntakeData | null>(() =>
     safeReadStorage<IntakeData>("salamax_intake")
@@ -109,6 +157,9 @@ export default function BookingPage() {
   );
   const [triageResult] = useState<TriageResponse | null>(() =>
     safeReadStorage<TriageResponse>("salamax_triage_result")
+  );
+  const [visitPreference] = useState<VisitPreference | null>(() =>
+    safeReadStorage<VisitPreference>("salamax_visit_preference")
   );
   const [bookingResponse, setBookingResponse] =
     useState<BookingConfirmation | null>(() =>
@@ -150,6 +201,7 @@ export default function BookingPage() {
       intake: intakeData,
       bodyMap: bodyMapData,
       visitReason: visitReasonData,
+      visitPreference,
       uploadedFiles,
       triageResult,
     };
@@ -253,6 +305,14 @@ export default function BookingPage() {
                   <span className="font-bold">زمان نوبت:</span>{" "}
                   {selectedDoctor.available}
                 </p>
+                <p>
+                  <span className="font-bold">نوع ویزیت انتخابی:</span>{" "}
+                  {getVisitModeLabel(visitPreference?.visitMode)}
+                </p>
+                <p>
+                  <span className="font-bold">اولویت بیمار:</span>{" "}
+                  {getPriorityLabel(visitPreference?.priority)}
+                </p>
               </div>
             ) : (
               <p className="mt-5 text-gray-600">
@@ -261,6 +321,23 @@ export default function BookingPage() {
             )}
           </section>
         </div>
+
+        <section className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-6">
+          <h2 className="text-xl font-bold text-blue-900">
+            اولویت و نوع ویزیت
+          </h2>
+
+          <div className="mt-5 grid gap-3 text-gray-700 md:grid-cols-2">
+            <p>
+              <span className="font-bold">نوع ویزیت:</span>{" "}
+              {getVisitModeLabel(visitPreference?.visitMode)}
+            </p>
+            <p>
+              <span className="font-bold">اولویت بیمار:</span>{" "}
+              {getPriorityLabel(visitPreference?.priority)}
+            </p>
+          </div>
+        </section>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           <section className="rounded-2xl border border-gray-200 p-6">

@@ -51,6 +51,7 @@ type DocumentAnalysis = {
   recommendedSpecialtyHint: string;
   confidence: "low" | "medium" | "high";
   safetyDisclaimer: string;
+  isMock?: boolean;
   fileName?: string;
 };
 
@@ -376,9 +377,16 @@ export default function UploadPage() {
                       </p>
                     </div>
 
-                    <span className="rounded-full bg-teal-100 px-4 py-2 text-sm font-bold text-teal-800">
-                      میزان اطمینان: {analysis.confidence}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {analysis.isMock && (
+                        <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-800">
+                          Mock Analysis
+                        </span>
+                      )}
+                      <span className="rounded-full bg-teal-100 px-4 py-2 text-sm font-bold text-teal-800">
+                        میزان اطمینان: {analysis.confidence}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="mt-4 space-y-3 leading-8 text-gray-700">

@@ -137,7 +137,9 @@ export default function IntakePage() {
     localStorage.removeItem("salamax_body_map");
     localStorage.removeItem("salamax_visit_reason");
     localStorage.removeItem("salamax_uploaded_files");
+    localStorage.removeItem("salamax_document_analyses");
     localStorage.removeItem("salamax_triage_result");
+    localStorage.removeItem("salamax_visit_preference");
     localStorage.removeItem("salamax_doctor_match");
     localStorage.removeItem("salamax_selected_doctor");
     localStorage.removeItem("salamax_booking_confirmation");
