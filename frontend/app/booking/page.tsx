@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import FlowStepper from "@/components/FlowStepper";
 
 type BodyMapData = {
   viewMode: "front" | "back";
@@ -215,9 +216,14 @@ export default function BookingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-bold text-blue-900">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-5xl">
+        <FlowStepper currentStep="booking" />
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
+        <span className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800">
+          تأیید نوبت Sandbox
+        </span>
+        <h1 className="mt-4 text-3xl font-bold text-blue-950">
           تأیید رزرو نوبت
         </h1>
 
@@ -229,7 +235,7 @@ export default function BookingPage() {
         </p>
 
         {bookingResponse && (
-          <div className="mt-8 rounded-3xl border border-green-300 bg-green-50 p-6 text-green-900 shadow-sm">
+          <div className="mt-8 rounded-3xl border border-green-300 bg-gradient-to-br from-green-50 to-white p-6 text-green-900 shadow-lg shadow-green-100/70">
             <h2 className="text-xl font-bold">رزرو آزمایشی ثبت شد</h2>
 
             <div className="mt-4 space-y-3 leading-7">
@@ -261,7 +267,7 @@ export default function BookingPage() {
         )}
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <section className="rounded-2xl border border-gray-200 bg-slate-50 p-6">
+          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
             <h2 className="text-xl font-bold text-blue-900">
               شرح اولیه مراجعه
             </h2>
@@ -282,7 +288,7 @@ export default function BookingPage() {
             )}
           </section>
 
-          <section className="rounded-2xl border border-gray-200 bg-slate-50 p-6">
+          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
             <h2 className="text-xl font-bold text-blue-900">
               پزشک انتخاب‌شده
             </h2>
@@ -432,9 +438,9 @@ export default function BookingPage() {
             type="button"
             onClick={handleConfirmBooking}
             disabled={isSubmitting || !selectedDoctor || !triageResult}
-            className={`rounded-xl px-6 py-3 text-center text-white transition ${
+            className={`w-full rounded-2xl px-6 py-3 text-center text-white transition sm:w-auto ${
               !isSubmitting && selectedDoctor && triageResult
-                ? "bg-blue-900 hover:bg-blue-800"
+                ? "bg-blue-950 shadow-lg shadow-blue-950/15 hover:bg-blue-900"
                 : "cursor-not-allowed bg-gray-400"
             }`}
           >
@@ -443,18 +449,19 @@ export default function BookingPage() {
 
           <Link
             href="/summary"
-            className="rounded-xl border border-teal-300 px-6 py-3 text-center text-teal-700 hover:bg-teal-50"
+            className="w-full rounded-2xl border border-teal-300 px-6 py-3 text-center text-teal-700 hover:bg-teal-50 sm:w-auto"
           >
             مشاهده خلاصه نهایی
           </Link>
 
           <Link
             href="/doctor-match"
-            className="rounded-xl border border-gray-300 px-6 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
           >
             بازگشت به پزشکان
           </Link>
         </div>
+      </div>
       </div>
     </main>
   );

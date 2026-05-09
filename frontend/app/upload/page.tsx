@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import FlowStepper from "@/components/FlowStepper";
 
 type BodyMapData = {
   viewMode: "front" | "back";
@@ -203,9 +204,14 @@ export default function UploadPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow-sm">
-        <h1 className="text-3xl font-bold text-blue-900">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-4xl">
+        <FlowStepper currentStep="documents" />
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
+        <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-800">
+          مدارک و Document Agent
+        </span>
+        <h1 className="mt-4 text-3xl font-bold text-blue-950">
           آپلود مدارک پزشکی
         </h1>
 
@@ -283,7 +289,7 @@ export default function UploadPage() {
           </section>
         )}
 
-        <div className="mt-8 rounded-2xl border-2 border-dashed border-teal-300 bg-teal-50 p-8 text-center">
+        <div className="mt-8 rounded-3xl border-2 border-dashed border-teal-300 bg-gradient-to-br from-teal-50 to-white p-8 text-center shadow-sm">
           <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-white text-lg font-bold text-teal-800">
             PDF
           </div>
@@ -301,12 +307,12 @@ export default function UploadPage() {
             multiple
             accept=".pdf,.jpg,.jpeg,.png"
             onChange={handleFileChange}
-            className="mt-6 block w-full cursor-pointer rounded-xl border border-gray-300 bg-white p-3 text-sm text-gray-700"
+            className="mt-6 block w-full cursor-pointer rounded-2xl border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-sm"
           />
         </div>
 
         {files.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-gray-200 p-5">
+          <div className="mt-6 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="font-bold text-blue-900">
               فایل‌های انتخاب‌شده
             </h2>
@@ -315,7 +321,7 @@ export default function UploadPage() {
               {files.map((file) => (
                 <div
                   key={`${file.name}-${file.size}`}
-                  className="flex flex-col gap-1 rounded-xl bg-slate-50 p-4 text-sm text-gray-700 sm:flex-row sm:items-center sm:justify-between"
+                    className="flex flex-col gap-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <span className="font-medium">{file.name}</span>
                   <span className="text-gray-500">
@@ -333,7 +339,7 @@ export default function UploadPage() {
                 className={`rounded-xl px-6 py-3 text-center text-white transition ${
                   isAnalyzingDocuments
                     ? "cursor-not-allowed bg-gray-400"
-                    : "bg-teal-700 hover:bg-teal-800"
+                    : "bg-teal-700 shadow-lg shadow-teal-700/15 hover:bg-teal-800"
                 }`}
               >
                 {isAnalyzingDocuments
@@ -467,7 +473,7 @@ export default function UploadPage() {
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-yellow-200 bg-yellow-50 p-5">
+        <div className="mt-8 rounded-3xl border border-teal-200 bg-teal-50 p-5">
           <h3 className="font-bold text-yellow-900">
             نکته مهم درباره حریم خصوصی
           </h3>
@@ -484,7 +490,7 @@ export default function UploadPage() {
           <button
             type="button"
             onClick={handleContinue}
-            className="rounded-xl bg-blue-900 px-6 py-3 text-center text-white hover:bg-blue-800"
+            className="w-full rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 hover:bg-blue-900 sm:w-auto"
           >
             ادامه و تحلیل اولیه
           </button>
@@ -499,18 +505,19 @@ export default function UploadPage() {
               );
               router.push("/results");
             }}
-            className="rounded-xl border border-gray-300 px-6 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
           >
             مدرکی ندارم، ادامه بده
           </button>
 
           <Link
             href={getBackHref(bodyMapData, visitReasonData, intakeData)}
-            className="rounded-xl border border-gray-300 px-6 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
           >
             بازگشت
           </Link>
         </div>
+      </div>
       </div>
     </main>
   );

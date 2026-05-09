@@ -74,14 +74,14 @@ export default function Home() {
           >
             <Link
               href="/intake"
-              className="rounded-xl bg-blue-900 px-6 py-3 text-center text-white shadow-sm transition hover:bg-blue-800"
+            className="rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-900"
             >
               شروع پیش‌ویزیت
             </Link>
 
             <Link
               href="/summary"
-              className="rounded-xl border border-gray-300 bg-white px-6 py-3 text-center text-gray-700 transition hover:border-teal-400 hover:text-teal-700"
+            className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-center text-slate-700 shadow-sm transition hover:border-teal-400 hover:text-teal-700"
             >
               مشاهده خلاصه دمو
             </Link>
@@ -199,6 +199,65 @@ export default function Home() {
             </motion.p>
           </motion.div>
         </motion.div>
+      </section>
+
+      <section className="relative mx-auto max-w-6xl px-6 pb-20">
+        <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/50 backdrop-blur sm:p-8">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-sm font-bold text-teal-700">How it works</p>
+              <h2 className="mt-2 text-3xl font-bold text-blue-950">
+                مسیر آرام و مرحله‌به‌مرحله تا انتخاب پزشک
+              </h2>
+            </div>
+            <p className="max-w-2xl leading-8 text-slate-600">
+              ابتدا شرح حال یا هدف مراجعه ثبت می‌شود؛ اگر درد موضعی وجود داشته
+              باشد، نقشه بدن نمایش داده می‌شود. سپس مدارک اختیاری، تحلیل اولیه،
+              اولویت ویزیت و انتخاب پزشک انجام می‌شود.
+            </p>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-4">
+            {steps.map((step, index) => (
+              <div
+                key={step}
+                className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+              >
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-950 text-sm font-bold text-white">
+                  {index + 1}
+                </span>
+                <p className="mt-4 text-sm leading-7 text-slate-700">{step}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {[
+              {
+                title: "پیش‌ویزیت هوشمند",
+                text: "شرح حال اولیه به زبان ساده دریافت و مسیر مناسب پیشنهاد می‌شود.",
+              },
+              {
+                title: "هدایت به مسیر مناسب درمان",
+                text: "نقشه بدن فقط برای درد موضعی استفاده می‌شود و مسیر عمومی جداست.",
+              },
+              {
+                title: "خلاصه قابل ارسال به پزشک",
+                text: "خلاصه نهایی شامل شرح حال، مدارک، نتایج، اولویت‌ها و رزرو است.",
+              },
+            ].map((card) => (
+              <div
+                key={card.title}
+                className="rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-6 shadow-sm"
+              >
+                <h3 className="font-bold text-blue-950">{card.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-slate-600">
+                  {card.text}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
     </main>
   );

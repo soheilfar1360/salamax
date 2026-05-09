@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import FlowStepper from "@/components/FlowStepper";
 
 type IntakeData = {
   chiefComplaint: string;
@@ -63,11 +64,16 @@ export default function VisitReasonPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-5xl rounded-2xl bg-white p-8 shadow-sm">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-5xl">
+        <FlowStepper currentStep="route" />
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900">
+            <span className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800">
+              مسیر بدون درد موضعی
+            </span>
+            <h1 className="mt-4 text-3xl font-bold text-blue-950">
               دلیل مراجعه
             </h1>
 
@@ -80,13 +86,13 @@ export default function VisitReasonPage() {
 
           <Link
             href="/intake"
-            className="rounded-xl border border-gray-300 px-5 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="rounded-2xl border border-slate-300 px-5 py-3 text-center text-slate-700 hover:bg-slate-50"
           >
             بازگشت به پیش‌ویزیت
           </Link>
         </div>
 
-        <section className="mt-8 rounded-3xl border border-blue-200 bg-blue-50 p-5 text-blue-900 shadow-sm">
+        <section className="mt-8 rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 text-blue-900 shadow-sm">
           <h2 className="font-bold">شرح ثبت‌شده</h2>
           <p className="mt-3 leading-8">
             {intake?.chiefComplaint || "شرح اولیه‌ای در مرورگر پیدا نشد."}
@@ -105,7 +111,7 @@ export default function VisitReasonPage() {
                 className={`rounded-3xl border p-5 text-right shadow-sm transition ${
                   isSelected
                     ? "border-teal-400 bg-teal-50 text-teal-950 shadow-md"
-                    : "border-gray-200 bg-white text-gray-700 hover:border-teal-300 hover:bg-teal-50"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-teal-300 hover:bg-teal-50"
                 }`}
               >
                 <span className="text-lg font-bold">{reason}</span>
@@ -126,7 +132,7 @@ export default function VisitReasonPage() {
             disabled={!selectedReason}
             className={`rounded-xl px-6 py-3 text-center text-white transition ${
               selectedReason
-                ? "bg-blue-900 hover:bg-blue-800"
+                ? "bg-blue-950 shadow-lg shadow-blue-950/15 hover:bg-blue-900"
                 : "cursor-not-allowed bg-gray-400"
             }`}
           >
@@ -135,11 +141,12 @@ export default function VisitReasonPage() {
 
           <Link
             href="/intake"
-            className="rounded-xl border border-gray-300 px-6 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50"
           >
             اصلاح شرح اولیه
           </Link>
         </div>
+      </div>
       </div>
     </main>
   );

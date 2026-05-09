@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import FlowStepper from "@/components/FlowStepper";
 
 type VisitMode = "online" | "in_person" | "any";
 type Priority =
@@ -557,12 +558,16 @@ export default function DoctorMatchPage() {
   const bestDoctor = doctorMatch.doctors[0];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-6xl">
-        <div className="rounded-2xl bg-white p-8 shadow-sm">
+        <FlowStepper currentStep="doctor" />
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-blue-900">
+              <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-800">
+                تطبیق هوشمند پزشک
+              </span>
+              <h1 className="mt-4 text-3xl font-bold text-blue-950">
                 پزشکان پیشنهادی
               </h1>
 
@@ -577,7 +582,7 @@ export default function DoctorMatchPage() {
 
             <Link
               href="/visit-preference"
-              className="rounded-xl border border-gray-300 px-5 py-3 text-center text-gray-700 hover:bg-gray-50"
+              className="rounded-2xl border border-slate-300 px-5 py-3 text-center text-slate-700 hover:bg-slate-50"
             >
               اصلاح اولویت‌ها
             </Link>
@@ -656,7 +661,7 @@ export default function DoctorMatchPage() {
             {doctorMatch.doctors.map((doctor, index) => (
               <div
                 key={doctor.id}
-                className={`rounded-2xl border bg-white p-6 shadow-sm transition hover:shadow-md ${
+                className={`rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-lg ${
                   doctor.is_recommended
                     ? "border-teal-300"
                     : "border-gray-200"
@@ -677,7 +682,32 @@ export default function DoctorMatchPage() {
 
                       {doctor.is_recommended && (
                         <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
-                          مرتبط با تحلیل
+                          تخصص مرتبط
+                        </span>
+                      )}
+                      {doctor.rating >= 4.8 && (
+                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                          امتیاز بالا
+                        </span>
+                      )}
+                      {doctor.nextAvailableMinutes <= 270 && (
+                        <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-bold text-teal-800">
+                          نوبت نزدیک
+                        </span>
+                      )}
+                      {doctor.punctualityScore >= 88 && (
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                          تأخیر کم
+                        </span>
+                      )}
+                      {doctor.visitModes.includes("online") && (
+                        <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold text-cyan-800">
+                          آنلاین
+                        </span>
+                      )}
+                      {doctor.visitModes.includes("in_person") && (
+                        <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-800">
+                          حضوری
                         </span>
                       )}
                     </div>
@@ -704,7 +734,7 @@ export default function DoctorMatchPage() {
                       <span className="rounded-full bg-slate-100 px-4 py-2">
                         اولین نوبت: {doctor.available}
                       </span>
-                      <span className="rounded-full bg-teal-100 px-4 py-2 text-teal-900">
+                      <span className="rounded-full bg-teal-100 px-4 py-2 font-bold text-teal-900">
                         امتیاز تطبیق: {doctor.match_score}٪
                       </span>
                       <span className="rounded-full bg-slate-100 px-4 py-2">
@@ -713,7 +743,7 @@ export default function DoctorMatchPage() {
                     </div>
 
                     <p className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm leading-7 text-blue-900">
-                      <span className="font-bold">دلیل پیشنهاد:</span>{" "}
+                      <span className="font-bold">چرا این پزشک پیشنهاد شد؟</span>{" "}
                       {doctor.whyRecommended}
                     </p>
                   </div>
@@ -722,7 +752,7 @@ export default function DoctorMatchPage() {
                     <Link
                       href="/booking"
                       onClick={() => handleSelectDoctor(doctor)}
-                      className="rounded-xl bg-blue-900 px-6 py-3 text-center text-white hover:bg-blue-800"
+                      className="rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 hover:bg-blue-900"
                     >
                       انتخاب و رزرو
                     </Link>

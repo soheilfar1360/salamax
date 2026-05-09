@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import FlowStepper from "@/components/FlowStepper";
 
 type DetectedFlow = "pain_flow" | "general_visit_flow" | "emergency_flow";
 
@@ -179,11 +180,16 @@ export default function IntakePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-4xl rounded-2xl bg-white p-8 shadow-sm">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-4xl">
+        <FlowStepper currentStep="intake" />
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900">
+            <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-800">
+              Health AI Router
+            </span>
+            <h1 className="mt-4 text-3xl font-bold text-blue-950">
               پیش‌ویزیت هوشمند
             </h1>
 
@@ -202,7 +208,7 @@ export default function IntakePage() {
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
           <label className="block text-right text-sm font-medium text-gray-700">
             شرح حال اولیه یا دلیل مراجعه
           </label>
@@ -214,7 +220,7 @@ export default function IntakePage() {
               setValidationError("");
               setEmergencyDetected(false);
             }}
-            className="mt-3 h-44 w-full rounded-xl border border-gray-300 p-4 text-right leading-8 outline-none focus:border-blue-700"
+            className="mt-3 h-44 w-full rounded-2xl border border-slate-200 bg-white p-4 text-right leading-8 outline-none transition focus:border-teal-500 focus:ring-4 focus:ring-teal-100"
             placeholder="مثلاً: درد زانو دارم، یا می‌خواهم برای چکاپ عمومی نوبت بگیرم..."
             dir="rtl"
           />
@@ -233,6 +239,27 @@ export default function IntakePage() {
               مراجعه می‌کنم».
             </p>
           )}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {[
+              "درد زانو دارم",
+              "می‌خواهم جواب آزمایش را بررسی کنم",
+              "چکاپ عمومی می‌خواهم",
+              "تمدید نسخه می‌خواهم",
+            ].map((example) => (
+              <button
+                key={example}
+                type="button"
+                onClick={() => {
+                  setChiefComplaint(example);
+                  setValidationError("");
+                  setEmergencyDetected(false);
+                }}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition hover:border-teal-300 hover:bg-teal-50 hover:text-teal-900"
+              >
+                {example}
+              </button>
+            ))}
+          </div>
         </div>
 
         {emergencyDetected && (
@@ -251,7 +278,7 @@ export default function IntakePage() {
               <button
                 type="button"
                 onClick={handleContinueWithCaution}
-                className="rounded-xl bg-red-700 px-6 py-3 text-center text-white hover:bg-red-800"
+                className="rounded-2xl bg-red-700 px-6 py-3 text-center text-white shadow-sm hover:bg-red-800 sm:w-auto"
               >
                 ادامه با مسئولیت خودم
               </button>
@@ -259,7 +286,7 @@ export default function IntakePage() {
               <button
                 type="button"
                 onClick={() => setEmergencyDetected(false)}
-                className="rounded-xl border border-red-300 px-6 py-3 text-red-700 hover:bg-red-100"
+                className="rounded-2xl border border-red-300 px-6 py-3 text-red-700 hover:bg-red-100 sm:w-auto"
               >
                 توقف و تماس با اورژانس
               </button>
@@ -294,11 +321,12 @@ export default function IntakePage() {
           <button
             type="button"
             onClick={handleContinue}
-            className="rounded-xl bg-blue-900 px-6 py-3 text-white hover:bg-blue-800"
+            className="w-full rounded-2xl bg-blue-950 px-6 py-3 text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-900 sm:w-auto"
           >
             ادامه
           </button>
         </div>
+      </div>
       </div>
     </main>
   );

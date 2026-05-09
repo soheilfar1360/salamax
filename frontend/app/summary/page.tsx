@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import FlowStepper from "@/components/FlowStepper";
 
 type DetectedFlow = "pain_flow" | "general_visit_flow" | "emergency_flow";
 
@@ -254,11 +255,16 @@ export default function SummaryPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-6xl rounded-2xl bg-white p-8 shadow-sm">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl">
+        <FlowStepper currentStep="summary" />
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900">
+            <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-800">
+              گزارش نهایی مسیر بیمار
+            </span>
+            <h1 className="mt-4 text-3xl font-bold text-blue-950">
               خلاصه نهایی پیش‌ویزیت
             </h1>
 
@@ -287,8 +293,8 @@ export default function SummaryPage() {
           </section>
         )}
 
-        <div className="mt-8 grid gap-6 md:grid-cols-4">
-          <div className="rounded-2xl border border-gray-200 bg-slate-50 p-5">
+        <div className="mt-8 grid gap-4 md:grid-cols-4">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
             <p className="text-sm text-gray-500">مرحله ۱</p>
             <h2 className="mt-2 font-bold text-blue-900">شرح اولیه</h2>
             <p className="mt-2 text-sm leading-7 text-gray-600">
@@ -296,7 +302,7 @@ export default function SummaryPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-slate-50 p-5">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
             <p className="text-sm text-gray-500">مرحله ۲</p>
             <h2 className="mt-2 font-bold text-blue-900">مسیر تشخیص</h2>
             <p className="mt-2 text-sm leading-7 text-gray-600">
@@ -304,7 +310,7 @@ export default function SummaryPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-slate-50 p-5">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
             <p className="text-sm text-gray-500">مرحله ۳</p>
             <h2 className="mt-2 font-bold text-blue-900">
               {bodyMapData ? "محل درد" : "دلیل مراجعه"}
@@ -316,7 +322,7 @@ export default function SummaryPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-gray-200 bg-slate-50 p-5">
+          <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
             <p className="text-sm text-gray-500">مرحله ۴</p>
             <h2 className="mt-2 font-bold text-blue-900">رزرو</h2>
             <p className="mt-2 text-sm leading-7 text-gray-600">
@@ -661,19 +667,20 @@ export default function SummaryPage() {
           <button
             type="button"
             onClick={clearDemoData}
-            className="rounded-xl bg-blue-900 px-6 py-3 text-center text-white hover:bg-blue-800"
+            className="w-full rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 hover:bg-blue-900 sm:w-auto"
           >
             شروع دمو جدید
           </button>
 
           <Link
             href="/booking"
-            className="rounded-xl border border-gray-300 px-6 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
           >
             بازگشت به رزرو
           </Link>
 
         </div>
+      </div>
       </div>
     </main>
   );

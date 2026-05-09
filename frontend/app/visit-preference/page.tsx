@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import FlowStepper from "@/components/FlowStepper";
 
 type VisitMode = "online" | "in_person" | "any";
 type Priority =
@@ -245,11 +246,16 @@ export default function VisitPreferencePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="mx-auto max-w-6xl rounded-2xl bg-white p-8 shadow-sm">
+    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+      <div className="mx-auto max-w-6xl">
+        <FlowStepper currentStep="preference" />
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-blue-900">
+            <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-800">
+              اولویت‌های تطبیق پزشک
+            </span>
+            <h1 className="mt-4 text-3xl font-bold text-blue-950">
               تنظیم اولویت انتخاب پزشک
             </h1>
             <p className="mt-3 max-w-3xl leading-8 text-gray-600">
@@ -260,7 +266,7 @@ export default function VisitPreferencePage() {
 
           <Link
             href="/results"
-            className="rounded-xl border border-gray-300 px-5 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="rounded-2xl border border-slate-300 px-5 py-3 text-center text-slate-700 hover:bg-slate-50"
           >
             بازگشت به نتایج
           </Link>
@@ -302,8 +308,8 @@ export default function VisitPreferencePage() {
                 onClick={() => setVisitMode(option.value)}
                 className={`rounded-2xl border p-5 text-right transition ${
                   visitMode === option.value
-                    ? "border-teal-400 bg-teal-50 shadow-sm"
-                    : "border-gray-200 bg-white hover:border-teal-200"
+                    ? "border-teal-400 bg-teal-50 shadow-md"
+                    : "border-slate-200 bg-white shadow-sm hover:border-teal-200"
                 }`}
               >
                 <span className="font-bold text-blue-900">{option.title}</span>
@@ -325,8 +331,8 @@ export default function VisitPreferencePage() {
                 onClick={() => setPriority(option.value)}
                 className={`rounded-2xl border p-5 text-right transition ${
                   priority === option.value
-                    ? "border-blue-400 bg-blue-50 shadow-sm"
-                    : "border-gray-200 bg-white hover:border-blue-200"
+                    ? "border-blue-400 bg-blue-50 shadow-md"
+                    : "border-slate-200 bg-white shadow-sm hover:border-blue-200"
                 }`}
               >
                 <span className="font-bold text-blue-900">{option.title}</span>
@@ -338,8 +344,12 @@ export default function VisitPreferencePage() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+        <section className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
           <h2 className="font-bold text-blue-900">وزن‌دهی تطبیق پزشک</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-600">
+            این وزن‌ها نشان می‌دهند کدام معیارها در رتبه‌بندی پزشکان پررنگ‌تر
+            می‌شوند. در ویزیت آنلاین، فاصله از امتیازدهی حذف می‌شود.
+          </p>
           <div className="mt-4 grid gap-3 text-sm text-gray-700 md:grid-cols-3">
             <p>تخصص: {Math.round(weights.specialty * 100)}٪</p>
             <p>فاصله: {Math.round(weights.distance * 100)}٪</p>
@@ -354,18 +364,19 @@ export default function VisitPreferencePage() {
           <button
             type="button"
             onClick={handleContinue}
-            className="rounded-xl bg-blue-900 px-6 py-3 text-center text-white hover:bg-blue-800"
+            className="w-full rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 hover:bg-blue-900 sm:w-auto"
           >
             مشاهده پزشکان پیشنهادی
           </button>
 
           <Link
             href="/results"
-            className="rounded-xl border border-gray-300 px-6 py-3 text-center text-gray-700 hover:bg-gray-50"
+            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
           >
             بازگشت
           </Link>
         </div>
+      </div>
       </div>
     </main>
   );
