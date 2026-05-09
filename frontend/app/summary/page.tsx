@@ -72,6 +72,26 @@ type BookingConfirmation = {
   triageResult?: TriageResponse | null;
 };
 
+type DocumentAnalysis = {
+  documentType: string;
+  detectedLanguage: string;
+  extractedTextSummary: string;
+  abnormalFindings: Array<{
+    name: string;
+    value: string;
+    referenceRange?: string;
+    status: "low" | "high" | "normal" | "unknown";
+    note: string;
+  }>;
+  plainLanguageSummary: string;
+  doctorFacingSummary: string;
+  triageImpact: string;
+  recommendedSpecialtyHint: string;
+  confidence: "low" | "medium" | "high";
+  safetyDisclaimer: string;
+  fileName?: string;
+};
+
 function safeReadStorage<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
 
@@ -136,6 +156,9 @@ export default function SummaryPage() {
   const [triageResult, setTriageResult] = useState<TriageResponse | null>(() =>
     safeReadStorage<TriageResponse>("salamax_triage_result")
   );
+  const [documentAnalyses, setDocumentAnalyses] = useState<DocumentAnalysis[]>(
+    () => safeReadStorage<DocumentAnalysis[]>("salamax_document_analyses") ?? []
+  );
   const [bookingConfirmation, setBookingConfirmation] =
     useState<BookingConfirmation | null>(() =>
       safeReadStorage<BookingConfirmation>("salamax_booking_confirmation")
@@ -158,6 +181,7 @@ export default function SummaryPage() {
     localStorage.removeItem("salamax_uploaded_files");
     localStorage.removeItem("salamax_selected_doctor");
     localStorage.removeItem("salamax_triage_result");
+    localStorage.removeItem("salamax_document_analyses");
     localStorage.removeItem("salamax_doctor_match");
     localStorage.removeItem("salamax_booking_confirmation");
 
@@ -167,6 +191,7 @@ export default function SummaryPage() {
     setUploadedFiles([]);
     setSelectedDoctor(null);
     setTriageResult(null);
+    setDocumentAnalyses([]);
     setBookingConfirmation(null);
     router.push("/intake");
   }
@@ -300,6 +325,80 @@ export default function SummaryPage() {
             )}
           </section>
         </div>
+
+        <section className="mt-8 rounded-3xl border border-teal-200 bg-teal-50 p-6 text-teal-950">
+          <h2 className="text-xl font-bold text-teal-900">
+            تحلیل مدارک توسط Document Agent
+          </h2>
+          <p className="mt-2 text-sm leading-7 text-teal-800">
+            این بخش تشخیص قطعی نیست و فقط خلاصه استخراج‌شده از مدارک را برای
+            تأیید پزشک نشان می‌دهد.
+          </p>
+
+          {documentAnalyses.length > 0 ? (
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl bg-white p-4 text-sm">
+                <span className="font-bold">تعداد مدارک تحلیل‌شده:</span>{" "}
+                {documentAnalyses.length}
+              </div>
+
+              {documentAnalyses.map((analysis, index) => (
+                <article
+                  key={`${analysis.fileName ?? analysis.documentType}-${index}`}
+                  className="rounded-2xl border border-teal-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h3 className="font-bold text-blue-900">
+                        {analysis.fileName ?? `مدرک ${index + 1}`}
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-600">
+                        {analysis.documentType} · اطمینان:{" "}
+                        {analysis.confidence}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="mt-4 leading-8 text-gray-700">
+                    {analysis.plainLanguageSummary}
+                  </p>
+
+                  {analysis.abnormalFindings.length > 0 && (
+                    <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                      <h4 className="font-bold text-blue-900">
+                        موارد قابل توجه
+                      </h4>
+                      <div className="mt-3 grid gap-3">
+                        {analysis.abnormalFindings.map((finding) => (
+                          <div
+                            key={`${finding.name}-${finding.value}`}
+                            className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-gray-700"
+                          >
+                            <p className="font-bold">
+                              {finding.name}: {finding.value}
+                            </p>
+                            <p className="mt-1">وضعیت: {finding.status}</p>
+                            <p className="mt-1 text-gray-600">
+                              {finding.note}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <p className="mt-4 rounded-xl bg-yellow-50 p-3 text-sm leading-7 text-yellow-900">
+                    {analysis.safetyDisclaimer}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 leading-7 text-teal-800">
+              تحلیلی از مدارک در این دمو ثبت نشده است.
+            </p>
+          )}
+        </section>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-2xl border border-gray-200 p-6">

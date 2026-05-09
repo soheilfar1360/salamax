@@ -34,6 +34,26 @@ type VisitReasonData = {
   createdAt: string;
 };
 
+type DocumentAnalysis = {
+  documentType: string;
+  detectedLanguage: string;
+  extractedTextSummary: string;
+  abnormalFindings: Array<{
+    name: string;
+    value: string;
+    referenceRange?: string;
+    status: "low" | "high" | "normal" | "unknown";
+    note: string;
+  }>;
+  plainLanguageSummary: string;
+  doctorFacingSummary: string;
+  triageImpact: string;
+  recommendedSpecialtyHint: string;
+  confidence: "low" | "medium" | "high";
+  safetyDisclaimer: string;
+  fileName?: string;
+};
+
 function safeReadStorage<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
 
@@ -68,6 +88,20 @@ function getBackHref(
   return "/intake";
 }
 
+function fileToBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      resolve(result.split(",")[1] ?? "");
+    };
+
+    reader.onerror = () => reject(new Error("Could not read file."));
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function UploadPage() {
   const router = useRouter();
 
@@ -81,6 +115,12 @@ export default function UploadPage() {
     safeReadStorage<VisitReasonData>("salamax_visit_reason")
   );
   const [files, setFiles] = useState<UploadedFileInfo[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [documentAnalyses, setDocumentAnalyses] = useState<DocumentAnalysis[]>(
+    () => safeReadStorage<DocumentAnalysis[]>("salamax_document_analyses") ?? []
+  );
+  const [isAnalyzingDocuments, setIsAnalyzingDocuments] = useState(false);
+  const [documentAnalysisError, setDocumentAnalysisError] = useState("");
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const selectedFiles = Array.from(event.target.files || []);
@@ -92,6 +132,68 @@ export default function UploadPage() {
     }));
 
     setFiles(fileInfo);
+    setSelectedFiles(selectedFiles);
+    setDocumentAnalyses([]);
+    setDocumentAnalysisError("");
+    localStorage.removeItem("salamax_document_analyses");
+  }
+
+  async function handleAnalyzeDocuments() {
+    if (!selectedFiles.length) {
+      setDocumentAnalysisError("برای تحلیل مدارک، ابتدا یک فایل انتخاب کنید.");
+      return;
+    }
+
+    try {
+      setIsAnalyzingDocuments(true);
+      setDocumentAnalysisError("");
+
+      const analyses = await Promise.all(
+        selectedFiles.map(async (file) => {
+          const fileBase64 = await fileToBase64(file);
+
+          const response = await fetch("/.netlify/functions/analyze-document", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              fileName: file.name,
+              fileType: file.type || "application/octet-stream",
+              fileBase64,
+              chiefComplaint: intakeData?.chiefComplaint,
+              selectedRegion: bodyMapData?.selectedRegion ?? null,
+              selectedLabel: bodyMapData?.selectedLabel ?? null,
+              painLevel: bodyMapData?.painLevel ?? null,
+              visitReason: visitReasonData?.reason ?? null,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error("Document Agent request failed.");
+          }
+
+          const analysis = (await response.json()) as DocumentAnalysis;
+
+          return {
+            ...analysis,
+            fileName: file.name,
+          };
+        })
+      );
+
+      setDocumentAnalyses(analyses);
+      localStorage.setItem(
+        "salamax_document_analyses",
+        JSON.stringify(analyses)
+      );
+    } catch {
+      setDocumentAnalysisError(
+        "تحلیل مدارک انجام نشد. می‌توانید بدون تحلیل مدارک ادامه دهید."
+      );
+    } finally {
+      setIsAnalyzingDocuments(false);
+    }
   }
 
   function handleContinue() {
@@ -221,7 +323,117 @@ export default function UploadPage() {
                 </div>
               ))}
             </div>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                onClick={handleAnalyzeDocuments}
+                disabled={isAnalyzingDocuments}
+                className={`rounded-xl px-6 py-3 text-center text-white transition ${
+                  isAnalyzingDocuments
+                    ? "cursor-not-allowed bg-gray-400"
+                    : "bg-teal-700 hover:bg-teal-800"
+                }`}
+              >
+                {isAnalyzingDocuments
+                  ? "در حال تحلیل مدارک..."
+                  : "تحلیل مدارک با Document Agent"}
+              </button>
+
+              <p className="text-sm leading-7 text-gray-500">
+                تحلیل مدارک اختیاری است و مسیر ادامه را مسدود نمی‌کند.
+              </p>
+            </div>
           </div>
+        )}
+
+        {documentAnalysisError && (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-red-800">
+            {documentAnalysisError}
+          </div>
+        )}
+
+        {documentAnalyses.length > 0 && (
+          <section className="mt-6 rounded-3xl border border-teal-200 bg-teal-50 p-5 text-teal-950">
+            <h2 className="text-xl font-bold text-teal-900">
+              نتایج Document Agent
+            </h2>
+
+            <div className="mt-5 grid gap-4">
+              {documentAnalyses.map((analysis, index) => (
+                <article
+                  key={`${analysis.fileName ?? analysis.documentType}-${index}`}
+                  className="rounded-2xl border border-teal-200 bg-white p-5 shadow-sm"
+                >
+                  <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h3 className="font-bold text-blue-900">
+                        {analysis.fileName ?? `مدرک ${index + 1}`}
+                      </h3>
+                      <p className="mt-1 text-sm text-gray-600">
+                        نوع مدرک: {analysis.documentType} · زبان:{" "}
+                        {analysis.detectedLanguage}
+                      </p>
+                    </div>
+
+                    <span className="rounded-full bg-teal-100 px-4 py-2 text-sm font-bold text-teal-800">
+                      میزان اطمینان: {analysis.confidence}
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3 leading-8 text-gray-700">
+                    <p>
+                      <span className="font-bold text-blue-900">خلاصه:</span>{" "}
+                      {analysis.plainLanguageSummary}
+                    </p>
+                    <p>
+                      <span className="font-bold text-blue-900">
+                        اثر احتمالی روی تریاژ:
+                      </span>{" "}
+                      {analysis.triageImpact}
+                    </p>
+                  </div>
+
+                  <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                    <h4 className="font-bold text-blue-900">موارد غیرعادی</h4>
+                    {analysis.abnormalFindings.length > 0 ? (
+                      <div className="mt-3 grid gap-3">
+                        {analysis.abnormalFindings.map((finding) => (
+                          <div
+                            key={`${finding.name}-${finding.value}`}
+                            className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-gray-700"
+                          >
+                            <p className="font-bold">
+                              {finding.name}: {finding.value}
+                            </p>
+                            <p className="mt-1">
+                              وضعیت: {finding.status}
+                              {finding.referenceRange
+                                ? ` · محدوده مرجع: ${finding.referenceRange}`
+                                : ""}
+                            </p>
+                            <p className="mt-1 text-gray-600">
+                              {finding.note}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm leading-7 text-gray-600">
+                        مورد غیرعادی مشخصی از روی محدوده‌های مرجع قابل مشاهده
+                        گزارش نشده است.
+                      </p>
+                    )}
+                  </div>
+
+                  <p className="mt-4 rounded-xl bg-yellow-50 p-3 text-sm leading-7 text-yellow-900">
+                    <span className="font-bold">هشدار:</span> این تحلیل
+                    جایگزین پزشک نیست. {analysis.safetyDisclaimer}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </section>
         )}
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">

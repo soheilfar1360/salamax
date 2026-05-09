@@ -43,6 +43,26 @@ type TriageResponse = {
   safety_notice: string;
 };
 
+type DocumentAnalysis = {
+  documentType: string;
+  detectedLanguage: string;
+  extractedTextSummary: string;
+  abnormalFindings: Array<{
+    name: string;
+    value: string;
+    referenceRange?: string;
+    status: "low" | "high" | "normal" | "unknown";
+    note: string;
+  }>;
+  plainLanguageSummary: string;
+  doctorFacingSummary: string;
+  triageImpact: string;
+  recommendedSpecialtyHint: string;
+  confidence: "low" | "medium" | "high";
+  safetyDisclaimer: string;
+  fileName?: string;
+};
+
 function safeReadStorage<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
 
@@ -248,6 +268,9 @@ export default function ResultsPage() {
   const [uploadedFiles] = useState<UploadedFileInfo[]>(() =>
     safeReadStorage<UploadedFileInfo[]>("salamax_uploaded_files") ?? []
   );
+  const [documentAnalyses] = useState<DocumentAnalysis[]>(() =>
+    safeReadStorage<DocumentAnalysis[]>("salamax_document_analyses") ?? []
+  );
 
   const triageResult = useMemo(() => {
     const result = buildTriageResult(
@@ -413,6 +436,64 @@ export default function ResultsPage() {
           <p className="mt-4 leading-8 text-gray-700">
             {triageResult.doctor_summary}
           </p>
+        </section>
+
+        <section className="mt-8 rounded-3xl border border-teal-200 bg-teal-50 p-6 text-teal-950">
+          <h2 className="text-xl font-bold text-teal-900">
+            Document Agent Summary
+          </h2>
+          <p className="mt-2 text-sm leading-7 text-teal-800">
+            تحلیل مدارک در نسخه Sandbox توسط Document Agent انجام شده و نیازمند
+            تأیید پزشک است.
+          </p>
+
+          {documentAnalyses.length > 0 ? (
+            <div className="mt-5 space-y-4">
+              <div className="grid gap-3 text-sm md:grid-cols-3">
+                <div className="rounded-2xl bg-white p-4">
+                  <span className="font-bold">تعداد مدارک تحلیل‌شده:</span>{" "}
+                  {documentAnalyses.length}
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <span className="font-bold">نوع مدارک:</span>{" "}
+                  {documentAnalyses
+                    .map((analysis) => analysis.documentType)
+                    .join("، ")}
+                </div>
+                <div className="rounded-2xl bg-white p-4">
+                  <span className="font-bold">موارد قابل توجه:</span>{" "}
+                  {documentAnalyses.reduce(
+                    (count, analysis) =>
+                      count + analysis.abnormalFindings.length,
+                    0
+                  )}
+                </div>
+              </div>
+
+              {documentAnalyses.map((analysis, index) => (
+                <article
+                  key={`${analysis.fileName ?? analysis.documentType}-${index}`}
+                  className="rounded-2xl border border-teal-200 bg-white p-5"
+                >
+                  <h3 className="font-bold text-blue-900">
+                    {analysis.fileName ?? `مدرک ${index + 1}`}
+                  </h3>
+                  <p className="mt-3 leading-8 text-gray-700">
+                    <span className="font-bold">خلاصه پزشک:</span>{" "}
+                    {analysis.doctorFacingSummary}
+                  </p>
+                  <p className="mt-2 leading-8 text-gray-700">
+                    <span className="font-bold">اثر روی تریاژ:</span>{" "}
+                    {analysis.triageImpact}
+                  </p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 leading-7 text-teal-800">
+              هنوز مدرکی توسط Document Agent تحلیل نشده است.
+            </p>
+          )}
         </section>
 
         <section className="mt-6 rounded-2xl border border-yellow-200 bg-yellow-50 p-5 text-yellow-900">
