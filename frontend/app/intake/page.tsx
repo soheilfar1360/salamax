@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import FlowStepper from "@/components/FlowStepper";
 
 type DetectedFlow = "pain_flow" | "general_visit_flow" | "emergency_flow";
@@ -109,8 +109,9 @@ function getFlowLabel(flow?: DetectedFlow | null) {
   return "مسیر مراجعه عمومی";
 }
 
-export default function IntakePage() {
+function IntakePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [validationError, setValidationError] = useState("");
   const [emergencyDetected, setEmergencyDetected] = useState(false);
@@ -119,6 +120,7 @@ export default function IntakePage() {
   );
   const [lastDetectedFlow, setLastDetectedFlow] =
     useState<DetectedFlow | null>(null);
+  const isFamilyHandoff = searchParams.get("source") === "salamax_family";
 
   const characterCount = useMemo(() => chiefComplaint.trim().length, [
     chiefComplaint,
@@ -183,6 +185,30 @@ export default function IntakePage() {
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-4xl">
         <FlowStepper currentStep="intake" />
+        {isFamilyHandoff && (
+          <section className="mb-6 rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-5 text-teal-950 shadow-lg shadow-teal-100/60">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-sm font-bold text-teal-700">
+                  Continuing from Salamax Family
+                </p>
+                <h2 className="mt-2 text-xl font-bold text-blue-950">
+                  ادامه از سلامکس خانواده
+                </h2>
+              </div>
+              <div className="max-w-2xl text-sm leading-7 text-slate-700">
+                <p>
+                  This case was started in Salamax Family. We’ll help you
+                  complete the full triage and booking flow.
+                </p>
+                <p className="mt-1">
+                  این مورد از اپ سلامکس خانواده وارد شده. حالا مسیر کامل تریاژ
+                  و نوبت‌دهی را ادامه می‌دهیم.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
@@ -329,5 +355,17 @@ export default function IntakePage() {
       </div>
       </div>
     </main>
+  );
+}
+
+export default function IntakePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10" />
+      }
+    >
+      <IntakePageContent />
+    </Suspense>
   );
 }
