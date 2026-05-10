@@ -1,8 +1,9 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import FlowStepper from "@/components/FlowStepper";
+import type { ReferralPayload } from "@/lib/referrals/types";
 
 type DetectedFlow = "pain_flow" | "general_visit_flow" | "emergency_flow";
 
@@ -112,15 +113,75 @@ function getFlowLabel(flow?: DetectedFlow | null) {
 function IntakePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const referralId = searchParams.get("referralId");
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [validationError, setValidationError] = useState("");
   const [emergencyDetected, setEmergencyDetected] = useState(false);
+  const [referralPayload, setReferralPayload] =
+    useState<ReferralPayload | null>(null);
+  const [referralError, setReferralError] = useState("");
+  const [isReferralLoading, setIsReferralLoading] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<"/body-map" | "/upload">(
     "/upload"
   );
   const [lastDetectedFlow, setLastDetectedFlow] =
     useState<DetectedFlow | null>(null);
   const isFamilyHandoff = searchParams.get("source") === "salamax_family";
+
+  useEffect(() => {
+    let isActive = true;
+
+    void Promise.resolve().then(async () => {
+      if (!referralId) {
+        if (isActive) {
+          setReferralPayload(null);
+          setReferralError("");
+          setIsReferralLoading(false);
+        }
+        return;
+      }
+
+      if (isActive) {
+        setReferralPayload(null);
+        setReferralError("");
+        setIsReferralLoading(true);
+      }
+
+      try {
+        const response = await fetch(
+          `/api/referrals/${encodeURIComponent(referralId)}`,
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+          throw new Error("Referral not found");
+        }
+
+        const data = (await response.json()) as {
+          referralId: string;
+          payload: ReferralPayload;
+        };
+
+        if (isActive) {
+          setReferralPayload(data.payload);
+        }
+      } catch {
+        if (isActive) {
+          setReferralError(
+            "ارجاع سلامکس خانواده پیدا نشد یا دیگر در دسترس نیست. می‌توانید مسیر عادی پیش‌ویزیت را ادامه دهید."
+          );
+        }
+      } finally {
+        if (isActive) {
+          setIsReferralLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      isActive = false;
+    };
+  }, [referralId]);
 
   const characterCount = useMemo(() => chiefComplaint.trim().length, [
     chiefComplaint,
@@ -185,7 +246,69 @@ function IntakePageContent() {
     <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
       <div className="mx-auto max-w-4xl">
         <FlowStepper currentStep="intake" />
-        {isFamilyHandoff && (
+        {referralId ? (
+          <section className="mb-6 rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-5 text-teal-950 shadow-lg shadow-teal-100/60">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <p className="text-sm font-bold text-teal-700">
+                  Continuing your case from Salamax Family
+                </p>
+                <h2 className="mt-2 text-xl font-bold text-blue-950">
+                  ادامه پرونده از سلامکس خانواده
+                </h2>
+              </div>
+              <div className="max-w-2xl text-sm leading-7 text-slate-700">
+                <p>
+                  The initial symptoms and triage summary have been received for
+                  this case.
+                </p>
+                <p className="mt-1">
+                  شرح اولیه و خلاصه تریاژ این مورد دریافت شده و در ادامه مسیر
+                  استفاده می‌شود.
+                </p>
+              </div>
+            </div>
+
+            {isReferralLoading && (
+              <p className="mt-4 rounded-2xl border border-teal-100 bg-white/80 px-4 py-3 text-sm text-teal-800">
+                در حال دریافت اطلاعات ارجاع از سلامکس خانواده...
+              </p>
+            )}
+
+            {referralError && (
+              <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-7 text-amber-900">
+                {referralError}
+              </p>
+            )}
+
+            {referralPayload && (
+              <div className="mt-4 grid gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm text-slate-700 md:grid-cols-2">
+                <p>
+                  <span className="font-bold text-blue-950">عضو خانواده: </span>
+                  {referralPayload.memberName || "ثبت نشده"}
+                </p>
+                <p>
+                  <span className="font-bold text-blue-950">
+                    فوریت پیشنهادی:{" "}
+                  </span>
+                  {referralPayload.urgency || "ثبت نشده"}
+                </p>
+                <p className="md:col-span-2">
+                  <span className="font-bold text-blue-950">
+                    شرح اولیه:{" "}
+                  </span>
+                  {referralPayload.symptomsText}
+                </p>
+                <p className="md:col-span-2">
+                  <span className="font-bold text-blue-950">
+                    تخصص پیشنهادی:{" "}
+                  </span>
+                  {referralPayload.suggestedSpecialty || "ثبت نشده"}
+                </p>
+              </div>
+            )}
+          </section>
+        ) : isFamilyHandoff ? (
           <section className="mb-6 rounded-3xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-5 text-teal-950 shadow-lg shadow-teal-100/60">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -208,7 +331,7 @@ function IntakePageContent() {
               </div>
             </div>
           </section>
-        )}
+        ) : null}
       <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
