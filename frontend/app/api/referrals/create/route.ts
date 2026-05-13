@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   }
 
   const referralId = createReferralId();
-  saveReferral(referralId, {
+  await saveReferral(referralId, {
     ...body,
     symptomsText: body.symptomsText.trim(),
   });

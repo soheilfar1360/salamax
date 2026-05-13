@@ -5,13 +5,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import FlowStepper from "@/components/FlowStepper";
 
-type DetectedFlow = "pain_flow" | "general_visit_flow" | "emergency_flow";
+type DetectedFlow =
+  | "pain_flow"
+  | "general_visit_flow"
+  | "emergency_flow"
+  | "veterinary_flow";
 
 type IntakeData = {
   chiefComplaint: string;
   detectedFlow: DetectedFlow;
   hasPain: boolean;
   requiresBodyMap: boolean;
+  profileType?: "human" | "pet";
+  suggestedSpecialty?: string;
+  relation?: string;
+  petType?: string;
+  breed?: string;
+  vaccinationStatus?: string;
+  petNotes?: string;
+  doctorSummary?: string;
   createdAt: string;
 };
 
@@ -79,6 +91,8 @@ type VisitPreference = {
 
 type TriageResponse = {
   risk_label: string;
+  profileType?: "human" | "pet";
+  detectedFlow?: DetectedFlow;
   visit_recommendation: string;
   suggested_specialty: string;
   doctor_summary: string;
@@ -147,8 +161,42 @@ function formatDate(dateString?: string) {
 function getFlowLabel(flow?: DetectedFlow) {
   if (flow === "pain_flow") return "درد یا ناراحتی موضعی";
   if (flow === "emergency_flow") return "علائم هشدار";
+  if (flow === "veterinary_flow") return "مسیر دامپزشکی";
   if (flow === "general_visit_flow") return "مراجعه عمومی";
   return "ثبت نشده";
+}
+
+function hasVeterinarySignal(value?: string | null) {
+  const text = value?.trim() ?? "";
+  return (
+    text.includes("دامپزشک") ||
+    text.includes("دامپزشکی") ||
+    text.includes("حیوان خانگی")
+  );
+}
+
+function isPetCase(
+  intake: IntakeData | null,
+  triageResult: TriageResponse | null
+) {
+  const petRelations = ["سگ", "گربه", "پرنده", "خرگوش", "حیوان خانگی"];
+  const relation = intake?.relation?.trim() ?? "";
+
+  return Boolean(
+    intake?.profileType === "pet" ||
+      intake?.detectedFlow === "veterinary_flow" ||
+      triageResult?.profileType === "pet" ||
+      triageResult?.detectedFlow === "veterinary_flow" ||
+      hasVeterinarySignal(intake?.suggestedSpecialty) ||
+      hasVeterinarySignal(triageResult?.suggested_specialty) ||
+      hasVeterinarySignal(intake?.doctorSummary) ||
+      hasVeterinarySignal(triageResult?.doctor_summary) ||
+      petRelations.includes(relation) ||
+      intake?.petType?.trim() ||
+      intake?.breed?.trim() ||
+      intake?.vaccinationStatus?.trim() ||
+      intake?.petNotes?.trim()
+  );
 }
 
 function getVisitModeLabel(visitMode?: VisitMode) {
@@ -220,8 +268,13 @@ export default function SummaryPage() {
 
   const effectiveTriage =
     triageResult ?? bookingConfirmation?.triageResult ?? null;
+  const petCase = isPetCase(intakeData ?? bookingConfirmation?.intake ?? null, effectiveTriage);
   const effectiveDoctor =
-    selectedDoctor ?? bookingConfirmation?.doctor ?? null;
+    petCase
+      ? [selectedDoctor, bookingConfirmation?.doctor ?? null].find(
+          (doctor) => doctor?.specialty === "دامپزشک"
+        ) ?? null
+      : selectedDoctor ?? bookingConfirmation?.doctor ?? null;
   const effectiveVisitPreference =
     visitPreference ?? bookingConfirmation?.visitPreference ?? null;
   const effectiveUploadedFiles =
@@ -546,11 +599,13 @@ export default function SummaryPage() {
                 </p>
                 <p>
                   <span className="font-bold">زمان پیشنهادی مراجعه:</span>{" "}
-                  {effectiveTriage.visit_recommendation}
+                  {petCase
+                    ? "در صورت ادامه علائم، یک نوبت دامپزشکی رزرو کنید."
+                    : effectiveTriage.visit_recommendation}
                 </p>
                 <p>
                   <span className="font-bold">تخصص پیشنهادی:</span>{" "}
-                  {effectiveTriage.suggested_specialty}
+                  {petCase ? "دامپزشک" : effectiveTriage.suggested_specialty}
                 </p>
               </div>
             ) : (

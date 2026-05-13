@@ -29,7 +29,7 @@ export default function FlowStepper({ currentStep }: FlowStepperProps) {
   return (
     <nav
       aria-label="مسیر پیش‌ویزیت"
-      className="mb-6 overflow-x-auto rounded-3xl border border-slate-200 bg-white/90 p-3 shadow-sm"
+      className="salamax-card salamax-scroll-x mb-6 max-w-full overflow-x-auto rounded-3xl p-3 shadow-sm"
       dir="rtl"
     >
       <ol className="flex min-w-max items-center gap-2">
@@ -42,19 +42,19 @@ export default function FlowStepper({ currentStep }: FlowStepperProps) {
               <span
                 className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition ${
                   isActive
-                    ? "border-teal-300 bg-teal-50 text-teal-900 shadow-sm"
+                    ? "border-[rgba(39,214,208,0.7)] bg-[rgba(39,214,208,0.1)] text-[#F4F7F8] shadow-sm"
                     : isComplete
-                    ? "border-blue-200 bg-blue-50 text-blue-900"
-                    : "border-slate-200 bg-slate-50 text-slate-500"
+                    ? "border-[rgba(14,167,163,0.6)] bg-[rgba(14,167,163,0.12)] text-[#F4F7F8]"
+                    : "border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] text-[#9FB3B7]"
                 }`}
               >
                 <span
                   className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
                     isComplete
-                      ? "bg-blue-900 text-white"
+                      ? "bg-[#0EA7A3] text-[#061923]"
                       : isActive
-                      ? "bg-teal-600 text-white"
-                      : "bg-white text-slate-500"
+                      ? "bg-[#27D6D0] text-[#061923]"
+                      : "bg-[rgba(255,255,255,0.08)] text-[#9FB3B7]"
                   }`}
                 >
                   {isComplete ? "✓" : index + 1}
@@ -62,7 +62,10 @@ export default function FlowStepper({ currentStep }: FlowStepperProps) {
                 {step.label}
               </span>
               {index < steps.length - 1 && (
-                <span className="h-px w-5 bg-slate-200" aria-hidden />
+                <span
+                  className="h-px w-5 bg-[rgba(255,255,255,0.16)]"
+                  aria-hidden
+                />
               )}
             </li>
           );

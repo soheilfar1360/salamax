@@ -47,14 +47,28 @@ type VisitReasonData = {
 
 type IntakeData = {
   chiefComplaint: string;
-  detectedFlow: "pain_flow" | "general_visit_flow" | "emergency_flow";
+  detectedFlow:
+    | "pain_flow"
+    | "general_visit_flow"
+    | "emergency_flow"
+    | "veterinary_flow";
   hasPain: boolean;
   requiresBodyMap: boolean;
+  profileType?: "human" | "pet";
+  suggestedSpecialty?: string;
+  relation?: string;
+  petType?: string;
+  breed?: string;
+  vaccinationStatus?: string;
+  petNotes?: string;
+  doctorSummary?: string;
   createdAt: string;
 };
 
 type TriageResponse = {
   risk_label: string;
+  profileType?: "human" | "pet";
+  detectedFlow?: IntakeData["detectedFlow"];
   visit_recommendation: string;
   suggested_specialty: string;
   doctor_summary: string;
@@ -82,10 +96,18 @@ type Doctor = {
 };
 
 type DoctorMatchResponse = {
+  profileType?: "human" | "pet";
+  detectedFlow?: IntakeData["detectedFlow"];
+  suggestedSpecialty?: string;
+  doctorSummary?: string;
   suggested_specialties: string;
   selected_label: string | null;
   pain_level: number;
-  matching_basis: "محل درد" | "دلیل مراجعه" | "اطلاعات اولیه";
+  matching_basis:
+    | "محل درد"
+    | "دلیل مراجعه"
+    | "اطلاعات اولیه"
+    | "مسیر دامپزشکی";
   visitPreference: VisitPreference;
   doctors: Doctor[];
 };
@@ -236,6 +258,38 @@ const doctors: Omit<
     nextAvailableMinutes: 135,
     consultationFee: 360000,
   },
+  {
+    id: 901,
+    name: "دکتر نازنین راد",
+    specialty: "دامپزشک",
+    specialty_key: "veterinary",
+    distance: "۲.۵ کیلومتر",
+    distance_km: 2.5,
+    available: "امروز، ساعت ۱۸:۰۰",
+    rating: 4.8,
+    clinic: "کلینیک دامپزشکی مهر",
+    address: "خیابان ولیعصر، کلینیک دامپزشکی مهر",
+    visitModes: ["in_person"],
+    punctualityScore: 90,
+    nextAvailableMinutes: 210,
+    consultationFee: 350000,
+  },
+  {
+    id: 902,
+    name: "دکتر آرمان شایان",
+    specialty: "دامپزشک",
+    specialty_key: "veterinary",
+    distance: "آنلاین",
+    distance_km: 0,
+    available: "امروز، ساعت ۲۰:۳۰",
+    rating: 4.7,
+    clinic: "مرکز دامپزشکی حیوانات کوچک",
+    address: "ویزیت آنلاین دامپزشکی",
+    visitModes: ["online"],
+    punctualityScore: 88,
+    nextAvailableMinutes: 360,
+    consultationFee: 290000,
+  },
 ];
 
 function safeReadStorage<T>(key: string): T | null {
@@ -249,6 +303,39 @@ function safeReadStorage<T>(key: string): T | null {
   }
 }
 
+function hasVeterinarySignal(value?: string | null) {
+  const text = value?.trim() ?? "";
+  return (
+    text.includes("دامپزشک") ||
+    text.includes("دامپزشکی") ||
+    text.includes("حیوان خانگی")
+  );
+}
+
+function isPetCase(
+  intake: IntakeData | null,
+  triageResult: TriageResponse | null
+) {
+  const petRelations = ["سگ", "گربه", "پرنده", "خرگوش", "حیوان خانگی"];
+  const relation = intake?.relation?.trim() ?? "";
+
+  return Boolean(
+    intake?.profileType === "pet" ||
+      intake?.detectedFlow === "veterinary_flow" ||
+      triageResult?.profileType === "pet" ||
+      triageResult?.detectedFlow === "veterinary_flow" ||
+      hasVeterinarySignal(intake?.suggestedSpecialty) ||
+      hasVeterinarySignal(triageResult?.suggested_specialty) ||
+      hasVeterinarySignal(intake?.doctorSummary) ||
+      hasVeterinarySignal(triageResult?.doctor_summary) ||
+      petRelations.includes(relation) ||
+      intake?.petType?.trim() ||
+      intake?.breed?.trim() ||
+      intake?.vaccinationStatus?.trim() ||
+      intake?.petNotes?.trim()
+  );
+}
+
 function getPreferredKeysFromSpecialty(specialty?: string) {
   const text = specialty ?? "";
   const keys: string[] = [];
@@ -260,6 +347,7 @@ function getPreferredKeysFromSpecialty(specialty?: string) {
   if (text.includes("ارتوپدی")) keys.push("orthopedic");
   if (text.includes("طب فیزیکی")) keys.push("physical");
   if (text.includes("عمومی")) keys.push("general");
+  if (text.includes("دامپزشک")) keys.push("veterinary");
 
   if (!keys.length) keys.push("general", "internal");
   if (!keys.includes("general")) keys.push("general");
@@ -294,6 +382,7 @@ function getSpecialtyTitle(keys: string[]) {
     neurology: "مغز و اعصاب",
     gastro: "گوارش",
     physical: "طب فیزیکی",
+    veterinary: "دامپزشک",
   };
 
   return keys.map((key) => labels[key] ?? key).join(" / ");
@@ -400,22 +489,31 @@ function calculateScore(
 }
 
 function buildDoctorMatch(
+  intake: IntakeData | null,
   bodyMap: BodyMapData | null,
   visitReason: VisitReasonData | null,
   triageResult: TriageResponse | null,
   preference: VisitPreference
 ): DoctorMatchResponse {
-  const matchingBasis = bodyMap
+  const isVeterinaryFlow = isPetCase(intake, triageResult);
+  const matchingBasis = isVeterinaryFlow
+    ? "مسیر دامپزشکی"
+    : bodyMap
     ? "محل درد"
     : visitReason
     ? "دلیل مراجعه"
     : "اطلاعات اولیه";
-  const preferredKeys = bodyMap
+  const preferredKeys = isVeterinaryFlow
+    ? ["veterinary"]
+    : bodyMap
     ? getPreferredKeysFromSpecialty(triageResult?.suggested_specialty)
     : getPreferredKeysFromVisitReason(visitReason?.reason);
   const painLevel = bodyMap?.painLevel ?? 3;
+  const doctorPool = isVeterinaryFlow
+    ? doctors.filter((doctor) => doctor.specialty_key === "veterinary")
+    : doctors.filter((doctor) => doctor.specialty_key !== "veterinary");
 
-  const ranked = doctors
+  const ranked = doctorPool
     .map((doctor) => {
       const score = calculateScore(doctor, preferredKeys, preference);
       const isRecommended = preferredKeys.includes(doctor.specialty_key);
@@ -438,8 +536,16 @@ function buildDoctorMatch(
     .sort((first, second) => second.match_score - first.match_score);
 
   return {
+    profileType: isVeterinaryFlow ? "pet" : undefined,
+    detectedFlow: isVeterinaryFlow ? "veterinary_flow" : intake?.detectedFlow,
+    suggestedSpecialty: isVeterinaryFlow ? "دامپزشک" : undefined,
+    doctorSummary: isVeterinaryFlow
+      ? "این مورد مربوط به حیوان خانگی است و برای بررسی بیشتر، مسیر دامپزشکی پیشنهاد می‌شود."
+      : undefined,
     suggested_specialties: getSpecialtyTitle(preferredKeys),
-    selected_label: bodyMap?.selectedLabel ?? visitReason?.reason ?? null,
+    selected_label: isVeterinaryFlow
+      ? "پرونده حیوان خانگی"
+      : bodyMap?.selectedLabel ?? visitReason?.reason ?? null,
     pain_level: painLevel,
     matching_basis: matchingBasis,
     visitPreference: preference,
@@ -450,19 +556,20 @@ function buildDoctorMatch(
 function getRiskBadgeClass(riskLabel?: string) {
   switch (riskLabel) {
     case "سبز":
-      return "border-green-300 bg-green-50 text-green-800";
+      return "border-[#20C9C3] bg-[#EAFBF8] text-[#102A43]";
     case "زرد":
-      return "border-yellow-300 bg-yellow-50 text-yellow-800";
+      return "border-amber-200 bg-amber-50 text-amber-900";
     case "نارنجی":
-      return "border-orange-300 bg-orange-50 text-orange-800";
+      return "border-amber-200 bg-amber-50 text-amber-900";
     case "قرمز":
-      return "border-red-300 bg-red-50 text-red-800";
+      return "border-red-200 bg-red-50 text-red-900";
     default:
-      return "border-gray-300 bg-gray-50 text-gray-800";
+      return "border-[#D7ECEF] bg-white text-[#64748B]";
   }
 }
 
 function getMatchingBasisText(basis: DoctorMatchResponse["matching_basis"]) {
+  if (basis === "مسیر دامپزشکی") return "بر اساس مسیر دامپزشکی";
   if (basis === "محل درد") return "بر اساس محل درد";
   if (basis === "دلیل مراجعه") return "بر اساس دلیل مراجعه";
   return "بر اساس اطلاعات اولیه";
@@ -523,12 +630,13 @@ export default function DoctorMatchPage() {
 
   const doctorMatch = useMemo(() => {
     return buildDoctorMatch(
+      intakeData,
       bodyMapData,
       visitReasonData,
       triageResult,
       visitPreference
     );
-  }, [bodyMapData, triageResult, visitReasonData, visitPreference]);
+  }, [bodyMapData, intakeData, triageResult, visitReasonData, visitPreference]);
 
   useEffect(() => {
     localStorage.setItem("salamax_doctor_match", JSON.stringify(doctorMatch));
@@ -558,10 +666,10 @@ export default function DoctorMatchPage() {
   const bestDoctor = doctorMatch.doctors[0];
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="min-h-screen bg-[#F6FBFC] px-4 py-8 text-[#183B56] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-6xl">
         <FlowStepper currentStep="doctor" />
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
+        <div className="rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm sm:p-8">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
               <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-800">
@@ -571,7 +679,7 @@ export default function DoctorMatchPage() {
                 پزشکان پیشنهادی
               </h1>
 
-              <p className="mt-3 max-w-3xl leading-8 text-gray-600">
+              <p className="mt-3 max-w-3xl leading-8 text-[#64748B]">
                 این پیشنهادها بر اساس{" "}
                 <span className="font-bold">
                   {getMatchingBasisText(doctorMatch.matching_basis)}
@@ -582,7 +690,7 @@ export default function DoctorMatchPage() {
 
             <Link
               href="/visit-preference"
-              className="rounded-2xl border border-slate-300 px-5 py-3 text-center text-slate-700 hover:bg-slate-50"
+              className="rounded-2xl border border-[#D7ECEF] bg-white px-5 py-3 text-center text-[#183B56] hover:border-[#20C9C3] hover:bg-[#EAFBF8]"
             >
               اصلاح اولویت‌ها
             </Link>
@@ -599,7 +707,7 @@ export default function DoctorMatchPage() {
           )}
 
           <div className="mt-8 grid gap-5 md:grid-cols-5">
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5 text-blue-900 md:col-span-2">
+            <div className="rounded-2xl border border-[#D7ECEF] bg-white p-5 text-[#183B56] shadow-sm md:col-span-2">
               <h2 className="font-bold">مبنای تطبیق</h2>
               <p className="mt-3 leading-7">
                 {getMatchingBasisText(doctorMatch.matching_basis)}
@@ -632,7 +740,7 @@ export default function DoctorMatchPage() {
             </div>
           </div>
 
-          <div className="mt-6 rounded-2xl border border-gray-200 bg-slate-50 p-5">
+          <div className="mt-6 rounded-2xl border border-[#D7ECEF] bg-[#EAFBF8] p-5 text-[#183B56]">
             <h2 className="font-bold text-blue-900">خلاصه برای پزشک</h2>
 
             <p className="mt-3 leading-8 text-gray-700">
@@ -661,88 +769,88 @@ export default function DoctorMatchPage() {
             {doctorMatch.doctors.map((doctor, index) => (
               <div
                 key={doctor.id}
-                className={`rounded-3xl border bg-white p-6 shadow-sm transition hover:shadow-lg ${
+                className={`rounded-3xl border border-[#D7ECEF] bg-white p-6 shadow-sm transition hover:shadow-lg ${
                   doctor.is_recommended
-                    ? "border-teal-300"
-                    : "border-gray-200"
+                    ? "border-[#20C9C3]"
+                    : "border-[#D7ECEF]"
                 }`}
               >
                 <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-3">
-                      <h2 className="text-2xl font-bold text-blue-900">
+                      <h2 className="text-2xl font-bold text-[#102A43]">
                         {doctor.name}
                       </h2>
 
                       {index === 0 && (
-                        <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-bold text-teal-800">
+                        <span className="rounded-full border border-[#D7ECEF] bg-[#EAFBF8] px-3 py-1 text-xs font-bold text-[#0E8F8A]">
                           پیشنهاد اول
                         </span>
                       )}
 
                       {doctor.is_recommended && (
-                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-800">
+                        <span className="rounded-full border border-[#20C9C3] bg-[#EAFBF8] px-3 py-1 text-xs font-bold text-[#102A43]">
                           تخصص مرتبط
                         </span>
                       )}
                       {doctor.rating >= 4.8 && (
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">
+                        <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900">
                           امتیاز بالا
                         </span>
                       )}
                       {doctor.nextAvailableMinutes <= 270 && (
-                        <span className="rounded-full bg-teal-100 px-3 py-1 text-xs font-bold text-teal-800">
+                        <span className="rounded-full border border-[#D7ECEF] bg-[#EAFBF8] px-3 py-1 text-xs font-bold text-[#102A43]">
                           نوبت نزدیک
                         </span>
                       )}
                       {doctor.punctualityScore >= 88 && (
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                        <span className="rounded-full border border-[#D7ECEF] bg-white px-3 py-1 text-xs font-bold text-[#64748B]">
                           تأخیر کم
                         </span>
                       )}
                       {doctor.visitModes.includes("online") && (
-                        <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-bold text-cyan-800">
+                        <span className="rounded-full border border-[#D7ECEF] bg-[#EAFBF8] px-3 py-1 text-xs font-bold text-[#102A43]">
                           آنلاین
                         </span>
                       )}
                       {doctor.visitModes.includes("in_person") && (
-                        <span className="rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-800">
+                        <span className="rounded-full border border-[#D7ECEF] bg-[#EAFBF8] px-3 py-1 text-xs font-bold text-[#102A43]">
                           حضوری
                         </span>
                       )}
                     </div>
 
-                    <p className="mt-2 text-teal-700">{doctor.specialty}</p>
-                    <p className="mt-2 text-gray-600">{doctor.clinic}</p>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-2 text-[#27D6D0]">{doctor.specialty}</p>
+                    <p className="mt-2 text-[#64748B]">{doctor.clinic}</p>
+                    <p className="mt-1 text-sm text-[#64748B]">
                       {doctor.address}
                     </p>
 
-                    <div className="mt-4 grid gap-3 text-sm text-gray-700 sm:grid-cols-2 lg:grid-cols-3">
-                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                    <div className="mt-4 grid gap-3 text-sm text-[#183B56] sm:grid-cols-2 lg:grid-cols-3">
+                      <span className="rounded-full border border-[#D7ECEF] bg-white px-4 py-2">
                         نوع ویزیت: {getVisitModesLabel(doctor.visitModes)}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                      <span className="rounded-full border border-[#D7ECEF] bg-white px-4 py-2">
                         فاصله: {doctor.distance}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                      <span className="rounded-full border border-[#D7ECEF] bg-white px-4 py-2">
                         امتیاز پزشک: {doctor.rating}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                      <span className="rounded-full border border-[#D7ECEF] bg-white px-4 py-2">
                         خوش‌قولی: {doctor.punctualityScore}٪
                       </span>
-                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                      <span className="rounded-full border border-[#D7ECEF] bg-white px-4 py-2">
                         اولین نوبت: {doctor.available}
                       </span>
-                      <span className="rounded-full bg-teal-100 px-4 py-2 font-bold text-teal-900">
+                      <span className="rounded-full border border-[#20C9C3] bg-[#EAFBF8] px-4 py-2 font-bold text-[#102A43]">
                         امتیاز تطبیق: {doctor.match_score}٪
                       </span>
-                      <span className="rounded-full bg-slate-100 px-4 py-2">
+                      <span className="rounded-full border border-[#D7ECEF] bg-white px-4 py-2">
                         تعرفه نمونه: {formatFee(doctor.consultationFee)}
                       </span>
                     </div>
 
-                    <p className="mt-4 rounded-2xl bg-blue-50 p-4 text-sm leading-7 text-blue-900">
+                    <p className="mt-4 rounded-2xl border border-[#D7ECEF] bg-[#F6FBFC] p-4 text-sm leading-7 text-[#183B56]">
                       <span className="font-bold">چرا این پزشک پیشنهاد شد؟</span>{" "}
                       {doctor.whyRecommended}
                     </p>
@@ -752,7 +860,7 @@ export default function DoctorMatchPage() {
                     <Link
                       href="/booking"
                       onClick={() => handleSelectDoctor(doctor)}
-                      className="rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 hover:bg-blue-900"
+                      className="rounded-2xl bg-[#20C9C3] px-6 py-3 text-center font-bold text-[#102A43] shadow-sm hover:bg-[#0E8F8A] hover:text-white"
                     >
                       انتخاب و رزرو
                     </Link>

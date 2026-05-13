@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import FlowStepper from "@/components/FlowStepper";
 
@@ -61,6 +61,8 @@ type VisitPreference = {
 
 type TriageResponse = {
   risk_label: string;
+  profileType?: "human" | "pet";
+  detectedFlow?: IntakeData["detectedFlow"];
   visit_recommendation: string;
   suggested_specialty: string;
   doctor_summary: string;
@@ -69,9 +71,21 @@ type TriageResponse = {
 
 type IntakeData = {
   chiefComplaint: string;
-  detectedFlow: "pain_flow" | "general_visit_flow" | "emergency_flow";
+  detectedFlow:
+    | "pain_flow"
+    | "general_visit_flow"
+    | "emergency_flow"
+    | "veterinary_flow";
   hasPain: boolean;
   requiresBodyMap: boolean;
+  profileType?: "human" | "pet";
+  suggestedSpecialty?: string;
+  relation?: string;
+  petType?: string;
+  breed?: string;
+  vaccinationStatus?: string;
+  petNotes?: string;
+  doctorSummary?: string;
   createdAt: string;
 };
 
@@ -118,6 +132,7 @@ function createBookingId() {
 function getFlowLabel(flow?: IntakeData["detectedFlow"]) {
   if (flow === "pain_flow") return "درد یا ناراحتی موضعی";
   if (flow === "emergency_flow") return "علائم هشدار";
+  if (flow === "veterinary_flow") return "مسیر دامپزشکی";
   return "مراجعه عمومی";
 }
 
@@ -138,6 +153,39 @@ function getPriorityLabel(priority?: Priority) {
   };
 
   return priority ? labels[priority] : "تعادل همه موارد";
+}
+
+function hasVeterinarySignal(value?: string | null) {
+  const text = value?.trim() ?? "";
+  return (
+    text.includes("دامپزشک") ||
+    text.includes("دامپزشکی") ||
+    text.includes("حیوان خانگی")
+  );
+}
+
+function isPetCase(
+  intake: IntakeData | null,
+  triageResult: TriageResponse | null
+) {
+  const petRelations = ["سگ", "گربه", "پرنده", "خرگوش", "حیوان خانگی"];
+  const relation = intake?.relation?.trim() ?? "";
+
+  return Boolean(
+    intake?.profileType === "pet" ||
+      intake?.detectedFlow === "veterinary_flow" ||
+      triageResult?.profileType === "pet" ||
+      triageResult?.detectedFlow === "veterinary_flow" ||
+      hasVeterinarySignal(intake?.suggestedSpecialty) ||
+      hasVeterinarySignal(triageResult?.suggested_specialty) ||
+      hasVeterinarySignal(intake?.doctorSummary) ||
+      hasVeterinarySignal(triageResult?.doctor_summary) ||
+      petRelations.includes(relation) ||
+      intake?.petType?.trim() ||
+      intake?.breed?.trim() ||
+      intake?.vaccinationStatus?.trim() ||
+      intake?.petNotes?.trim()
+  );
 }
 
 export default function BookingPage() {
@@ -168,11 +216,32 @@ export default function BookingPage() {
     );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [showBookingModal, setShowBookingModal] = useState(false);
+  const [copyMessage, setCopyMessage] = useState("");
+  const [fallbackTrackingCode, setFallbackTrackingCode] = useState("");
+  const [isFromApp] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      localStorage.getItem("salamax_from_app") === "true"
+  );
+  const petCase = isPetCase(intakeData, triageResult);
+  const selectedDoctorForDisplay =
+    petCase && selectedDoctor?.specialty !== "دامپزشک" ? null : selectedDoctor;
+  const suggestedSpecialtyForDisplay = petCase
+    ? "دامپزشک"
+    : triageResult?.suggested_specialty;
+  const trackingCode = bookingResponse?.booking_id ?? fallbackTrackingCode;
+
+  useEffect(() => {
+    if (!fallbackTrackingCode) {
+      setFallbackTrackingCode(`SAL-${Date.now().toString().slice(-6)}`);
+    }
+  }, [fallbackTrackingCode]);
 
   function handleConfirmBooking() {
     setErrorMessage("");
 
-    if (!selectedDoctor || !triageResult || !intakeData) {
+    if (!selectedDoctorForDisplay || !triageResult || !intakeData) {
       setErrorMessage(
         "اطلاعات لازم برای ثبت رزرو کامل نیست. لطفاً مسیر پیش‌ویزیت، نتیجه تحلیل و انتخاب پزشک را کامل طی کنید."
       );
@@ -182,23 +251,25 @@ export default function BookingPage() {
     setIsSubmitting(true);
 
     const patientSummary =
-      bodyMapData !== null
+      petCase
+        ? `شرح اولیه: ${intakeData.chiefComplaint}. مسیر دامپزشکی. تخصص پیشنهادی: دامپزشک.`
+        : bodyMapData !== null
         ? `شرح اولیه: ${intakeData.chiefComplaint}. محل درد: ${bodyMapData.selectedLabel}. شدت درد: ${bodyMapData.painLevel} از ۱۰. درجه هشدار: ${triageResult.risk_label}. تخصص پیشنهادی: ${triageResult.suggested_specialty}.`
         : `شرح اولیه: ${intakeData.chiefComplaint}. دلیل مراجعه: ${
             visitReasonData?.reason || "ثبت نشده"
           }. درجه هشدار: ${triageResult.risk_label}. تخصص پیشنهادی: ${
-            triageResult.suggested_specialty
+            suggestedSpecialtyForDisplay
           }.`;
 
     const confirmation: BookingConfirmation = {
       booking_id: createBookingId(),
       status: "confirmed",
       message: "رزرو آزمایشی با موفقیت در مرورگر ثبت شد.",
-      doctor_name: selectedDoctor.doctorName,
-      appointment_time: selectedDoctor.available,
+      doctor_name: selectedDoctorForDisplay.doctorName,
+      appointment_time: selectedDoctorForDisplay.available,
       patient_summary: patientSummary,
       confirmedAt: new Date().toISOString(),
-      doctor: selectedDoctor,
+      doctor: selectedDoctorForDisplay,
       intake: intakeData,
       bodyMap: bodyMapData,
       visitReason: visitReasonData,
@@ -212,22 +283,42 @@ export default function BookingPage() {
       JSON.stringify(confirmation)
     );
     setBookingResponse(confirmation);
+    setShowBookingModal(true);
     setIsSubmitting(false);
   }
 
+  async function handleCopyTrackingCode() {
+    await navigator.clipboard?.writeText(trackingCode);
+    setCopyMessage("کد پیگیری کپی شد");
+  }
+
+  function handleReturnToApp() {
+    window.location.href = `salamax://result?bookingId=${encodeURIComponent(
+      trackingCode
+    )}`;
+    window.setTimeout(() => {
+      alert("برای بازگشت، اپلیکیشن سلامکس را باز کنید.");
+    }, 700);
+  }
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="min-h-screen bg-[#F6FBFC] px-4 py-8 text-[#183B56] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl">
         <FlowStepper currentStep="booking" />
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
-        <span className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800">
+        {isFromApp && (
+          <span className="salamax-app-badge mb-4 rounded-full px-4 py-2 text-sm font-bold">
+            ادامه از اپلیکیشن سلامکس
+          </span>
+        )}
+      <div className="rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm sm:p-8">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[rgba(95,221,218,0.18)] bg-[rgba(39,214,208,0.08)] px-4 py-2 text-sm font-bold text-[#27D6D0]">
           تأیید نوبت Sandbox
         </span>
         <h1 className="mt-4 text-3xl font-bold text-blue-950">
           تأیید رزرو نوبت
         </h1>
 
-        <p className="mt-3 leading-8 text-gray-600">
+        <p className="mt-3 leading-8 text-[#64748B]">
           در این مرحله، اطلاعات مسیر پیش‌ویزیت، پزشک انتخاب‌شده و خلاصه تحلیل
           برای ثبت رزرو آزمایشی در مرورگر آماده می‌شود.
           این سامانه تشخیص قطعی پزشکی ارائه نمی‌دهد و صرفاً برای راهنمایی اولیه
@@ -266,14 +357,54 @@ export default function BookingPage() {
           </div>
         )}
 
+        {showBookingModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+            <div className="w-full max-w-md rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm">
+              <h2 className="text-xl font-bold text-[#102A43]">رزرو شما ثبت شد</h2>
+              <p className="mt-4 salamax-muted">کد پیگیری شما:</p>
+              <div className="mt-3 rounded-2xl border border-teal-300/30 bg-teal-400/10 px-5 py-4 text-center text-2xl font-bold tracking-widest text-teal-200">
+                {trackingCode}
+              </div>
+              {copyMessage && (
+                <p className="mt-3 text-sm text-teal-200">{copyMessage}</p>
+              )}
+              <div className="mt-6 grid gap-3">
+                <button
+                  type="button"
+                  onClick={handleCopyTrackingCode}
+                  className="salamax-primary rounded-2xl px-5 py-3 font-bold"
+                >
+                  کپی کد پیگیری
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowBookingModal(false)}
+                  className="rounded-2xl border border-teal-300/30 px-5 py-3 text-teal-100"
+                >
+                  مشاهده جزئیات
+                </button>
+                {isFromApp && (
+                  <button
+                    type="button"
+                    onClick={handleReturnToApp}
+                    className="rounded-2xl border border-teal-300/30 px-5 py-3 text-teal-100"
+                  >
+                    بازگشت به اپلیکیشن
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+          <section className="rounded-3xl border border-[#D7ECEF] bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-blue-900">
               شرح اولیه مراجعه
             </h2>
 
             {intakeData ? (
-              <div className="mt-5 space-y-3 leading-7 text-gray-700">
+              <div className="mt-5 space-y-3 leading-7 text-[#183B56]">
                 <p>
                   <span className="font-bold">شرح کاربر:</span>{" "}
                   {intakeData.chiefComplaint}
@@ -284,32 +415,32 @@ export default function BookingPage() {
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-gray-600">شرح اولیه ثبت نشده است.</p>
+              <p className="mt-5 text-[#64748B]">شرح اولیه ثبت نشده است.</p>
             )}
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+          <section className="rounded-3xl border border-[#D7ECEF] bg-white p-6 shadow-sm">
             <h2 className="text-xl font-bold text-blue-900">
               پزشک انتخاب‌شده
             </h2>
 
-            {selectedDoctor ? (
-              <div className="mt-5 space-y-3 leading-7 text-gray-700">
+            {selectedDoctorForDisplay ? (
+              <div className="mt-5 space-y-3 leading-7 text-[#183B56]">
                 <p>
                   <span className="font-bold">پزشک:</span>{" "}
-                  {selectedDoctor.doctorName}
+                  {selectedDoctorForDisplay.doctorName}
                 </p>
                 <p>
                   <span className="font-bold">تخصص:</span>{" "}
-                  {selectedDoctor.specialty}
+                  {selectedDoctorForDisplay.specialty}
                 </p>
                 <p>
                   <span className="font-bold">مرکز درمانی:</span>{" "}
-                  {selectedDoctor.clinic}
+                  {selectedDoctorForDisplay.clinic}
                 </p>
                 <p>
                   <span className="font-bold">زمان نوبت:</span>{" "}
-                  {selectedDoctor.available}
+                  {selectedDoctorForDisplay.available}
                 </p>
                 <p>
                   <span className="font-bold">نوع ویزیت انتخابی:</span>{" "}
@@ -321,14 +452,14 @@ export default function BookingPage() {
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-gray-600">
+              <p className="mt-5 text-[#64748B]">
                 هنوز پزشکی برای رزرو انتخاب نشده است.
               </p>
             )}
           </section>
         </div>
 
-        <section className="mt-8 rounded-2xl border border-blue-200 bg-blue-50 p-6">
+        <section className="mt-8 rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm">
           <h2 className="text-xl font-bold text-blue-900">
             اولویت و نوع ویزیت
           </h2>
@@ -346,7 +477,7 @@ export default function BookingPage() {
         </section>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <section className="rounded-2xl border border-gray-200 p-6">
+          <section className="rounded-2xl border border-[#D7ECEF] bg-white p-6 text-[#183B56]">
             <h2 className="text-xl font-bold text-blue-900">
               اطلاعات محل درد
             </h2>
@@ -363,13 +494,13 @@ export default function BookingPage() {
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-gray-600">
+              <p className="mt-5 text-[#64748B]">
                 برای این مسیر، اطلاعات نقشه بدن ثبت نشده است.
               </p>
             )}
           </section>
 
-          <section className="rounded-2xl border border-gray-200 p-6">
+          <section className="rounded-2xl border border-[#D7ECEF] bg-white p-6 text-[#183B56]">
             <h2 className="text-xl font-bold text-blue-900">دلیل مراجعه</h2>
 
             {visitReasonData ? (
@@ -380,14 +511,14 @@ export default function BookingPage() {
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-gray-600">
+              <p className="mt-5 text-[#64748B]">
                 دلیل مراجعه جداگانه ثبت نشده است.
               </p>
             )}
           </section>
         </div>
 
-        <section className="mt-8 rounded-2xl border border-gray-200 p-6">
+        <section className="mt-8 rounded-2xl border border-[#D7ECEF] bg-white p-6 text-[#183B56]">
           <h2 className="text-xl font-bold text-blue-900">
             مدارک انتخاب‌شده
           </h2>
@@ -397,17 +528,17 @@ export default function BookingPage() {
               {uploadedFiles.map((file) => (
                 <div
                   key={`${file.name}-${file.size}`}
-                  className="rounded-xl bg-slate-50 p-4 text-sm text-gray-700"
+                  className="rounded-xl border border-[#D7ECEF] bg-[#F6FBFC] p-4 text-sm text-[#183B56]"
                 >
                   <p className="font-medium">{file.name}</p>
-                  <p className="mt-1 text-gray-500">
+                  <p className="mt-1 text-[#64748B]">
                     {file.type || "نوع نامشخص"} · {file.size} بایت
                   </p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="mt-4 text-gray-600">
+            <p className="mt-4 text-[#64748B]">
               هیچ مدرکی برای این رزرو آزمایشی انتخاب نشده است.
             </p>
           )}
@@ -419,12 +550,14 @@ export default function BookingPage() {
           </h2>
 
           <p className="mt-4 leading-8 text-teal-950">
-            {triageResult?.doctor_summary ??
-              "خلاصه تحلیل اولیه هنوز ثبت نشده است."}
+            {petCase
+              ? "این مورد مربوط به حیوان خانگی است و برای بررسی بیشتر، مسیر دامپزشکی پیشنهاد می‌شود."
+              : triageResult?.doctor_summary ??
+                "خلاصه تحلیل اولیه هنوز ثبت نشده است."}
           </p>
 
           {bookingResponse && (
-            <div className="mt-5 rounded-2xl border border-teal-300 bg-white p-5 text-teal-950">
+            <div className="mt-5 rounded-2xl border border-[#D7ECEF] bg-white p-5 text-[#183B56]">
               <h3 className="font-bold">خلاصه رزرو</h3>
               <p className="mt-3 leading-8">
                 {bookingResponse.patient_summary}
@@ -437,11 +570,11 @@ export default function BookingPage() {
           <button
             type="button"
             onClick={handleConfirmBooking}
-            disabled={isSubmitting || !selectedDoctor || !triageResult}
-            className={`w-full rounded-2xl px-6 py-3 text-center text-white transition sm:w-auto ${
-              !isSubmitting && selectedDoctor && triageResult
-                ? "bg-blue-950 shadow-lg shadow-blue-950/15 hover:bg-blue-900"
-                : "cursor-not-allowed bg-gray-400"
+            disabled={isSubmitting || !selectedDoctorForDisplay || !triageResult}
+            className={`w-full rounded-2xl px-6 py-3 text-center font-bold transition sm:w-auto ${
+              !isSubmitting && selectedDoctorForDisplay && triageResult
+                ? "bg-[#20C9C3] text-[#102A43] shadow-sm hover:bg-[#0E8F8A] hover:text-white"
+                : "cursor-not-allowed bg-slate-200 text-slate-500"
             }`}
           >
             {isSubmitting ? "در حال ثبت رزرو..." : "تأیید نهایی رزرو آزمایشی"}
@@ -456,7 +589,7 @@ export default function BookingPage() {
 
           <Link
             href="/doctor-match"
-            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
+            className="w-full rounded-2xl border border-[#D7ECEF] bg-white px-6 py-3 text-center text-[#183B56] hover:border-[#20C9C3] hover:bg-[#EAFBF8] sm:w-auto"
           >
             بازگشت به پزشکان
           </Link>

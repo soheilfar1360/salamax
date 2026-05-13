@@ -13,13 +13,13 @@ const steps = [
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-white via-slate-50 to-teal-50">
+    <main className="relative min-h-screen overflow-hidden bg-[#F6FBFC] text-[#183B56]">
       <motion.div
         aria-hidden
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.2 }}
-        className="absolute right-[-120px] top-[-120px] h-[360px] w-[360px] rounded-full bg-teal-300/20 blur-3xl"
+        className="absolute right-[-120px] top-[-120px] h-[360px] w-[360px] rounded-full bg-[#20C9C3]/20 blur-3xl"
       />
 
       <motion.div
@@ -27,7 +27,7 @@ export default function Home() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.4, delay: 0.2 }}
-        className="absolute bottom-[-160px] left-[-160px] h-[420px] w-[420px] rounded-full bg-blue-300/20 blur-3xl"
+        className="absolute bottom-[-160px] left-[-160px] h-[420px] w-[420px] rounded-full bg-[#20C9C3]/15 blur-3xl"
       />
 
       <section className="relative mx-auto grid max-w-6xl gap-12 px-6 py-16 md:grid-cols-2 md:items-center md:py-24">
@@ -40,7 +40,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="text-sm font-semibold tracking-wide text-teal-700"
+            className="text-sm font-semibold tracking-wide text-[#0E8F8A]"
           >
             Smart Healthcare AI Platform
           </motion.p>
@@ -49,7 +49,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.75, delay: 0.15 }}
-            className="mt-5 text-5xl font-bold leading-tight text-blue-950 md:text-6xl"
+            className="mt-5 text-5xl font-bold leading-tight text-[#102A43] md:text-6xl"
           >
             هوشمندی برای تجربه‌ای بهتر از درمان
           </motion.h1>
@@ -58,7 +58,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.75, delay: 0.3 }}
-            className="mt-6 max-w-xl leading-8 text-gray-600"
+            className="mt-6 max-w-xl leading-8 text-[#64748B]"
           >
             SALAMAX یک سامانه هوشمند پیش‌ویزیت و نوبت‌دهی پزشکی است که ابتدا هدف
             مراجعه یا شرح حال را دریافت می‌کند و سپس بر اساس نوع نیاز، مسیر مناسب
@@ -74,14 +74,14 @@ export default function Home() {
           >
             <Link
               href="/intake"
-            className="rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 transition hover:bg-blue-900"
+              className="rounded-2xl bg-[#20C9C3] px-6 py-3 text-center font-bold text-[#061923] shadow-sm transition hover:bg-[#0E8F8A] hover:text-white"
             >
               شروع پیش‌ویزیت
             </Link>
 
             <Link
               href="/summary"
-            className="rounded-2xl border border-slate-300 bg-white px-6 py-3 text-center text-slate-700 shadow-sm transition hover:border-teal-400 hover:text-teal-700"
+              className="rounded-2xl border border-[#D7ECEF] bg-white px-6 py-3 text-center font-bold text-[#183B56] shadow-sm transition hover:bg-[#EAFBF8]"
             >
               مشاهده خلاصه دمو
             </Link>
@@ -93,23 +93,23 @@ export default function Home() {
             transition={{ duration: 0.75, delay: 0.6 }}
             className="mt-8 grid max-w-xl gap-3 sm:grid-cols-3"
           >
-            <div className="rounded-2xl border border-white bg-white/70 p-4 shadow-sm backdrop-blur">
-              <p className="text-2xl font-bold text-blue-950">AI</p>
-              <p className="mt-1 text-sm text-gray-500">پیش‌ویزیت هوشمند</p>
+            <div className="rounded-2xl border border-[#D7ECEF] bg-white p-4 shadow-sm">
+              <p className="text-2xl font-bold text-[#102A43]">AI</p>
+              <p className="mt-1 text-sm text-[#64748B]">پیش‌ویزیت هوشمند</p>
             </div>
 
-            <div className="rounded-2xl border border-white bg-white/70 p-4 shadow-sm backdrop-blur">
-              <p className="text-2xl font-bold text-blue-950">4</p>
-              <p className="mt-1 text-sm text-gray-500">درجه هشدار</p>
+            <div className="rounded-2xl border border-[#D7ECEF] bg-white p-4 shadow-sm">
+              <p className="text-2xl font-bold text-[#102A43]">4</p>
+              <p className="mt-1 text-sm text-[#64748B]">درجه هشدار</p>
             </div>
 
-            <div className="rounded-2xl border border-white bg-white/70 p-4 shadow-sm backdrop-blur">
-              <p className="text-2xl font-bold text-blue-950">Sandbox</p>
-              <p className="mt-1 text-sm text-gray-500">نسخه تست محصول</p>
+            <div className="rounded-2xl border border-[#D7ECEF] bg-white p-4 shadow-sm">
+              <p className="text-2xl font-bold text-[#102A43]">Sandbox</p>
+              <p className="mt-1 text-sm text-[#64748B]">نسخه تست محصول</p>
             </div>
           </motion.div>
 
-          <p className="mt-8 text-sm text-gray-500">
+          <p className="mt-8 text-sm text-[#64748B]">
             این سامانه تشخیص قطعی پزشکی ارائه نمی‌دهد و صرفاً برای راهنمایی اولیه
             و هدایت مسیر مراجعه طراحی شده است.
           </p>
@@ -131,7 +131,7 @@ export default function Home() {
               repeat: Infinity,
               ease: "easeInOut",
             }}
-            className="absolute inset-0 rounded-full bg-teal-300/30 blur-3xl"
+            className="absolute inset-0 rounded-full bg-[#20C9C3]/25 blur-3xl"
           />
 
           <motion.div
@@ -142,7 +142,7 @@ export default function Home() {
               ease: "easeInOut",
             }}
             whileHover={{ scale: 1.025 }}
-            className="relative rounded-[2rem] border border-white bg-white/80 p-8 shadow-2xl backdrop-blur"
+            className="relative rounded-[2rem] border border-[#D7ECEF] bg-white p-8 shadow-xl"
           >
             <motion.div
               initial={{ opacity: 0, rotate: -2, scale: 0.94 }}
@@ -164,13 +164,11 @@ export default function Home() {
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.75, delay: 0.75 }}
-              className="mt-8 rounded-2xl border border-teal-100 bg-teal-50/80 p-5"
+              className="mt-8 rounded-2xl border border-[#20C9C3] bg-[#EAFBF8] p-5"
             >
-              <h2 className="font-bold text-blue-950">
-                مسیر هوشمند درمان
-              </h2>
+              <h2 className="font-bold text-[#102A43]">مسیر هوشمند درمان</h2>
 
-              <div className="mt-4 grid gap-3 text-sm text-gray-700">
+              <div className="mt-4 grid gap-3 text-sm text-[#183B56]">
                 {steps.map((step, index) => (
                   <motion.div
                     key={step}
@@ -181,9 +179,12 @@ export default function Home() {
                       delay: 0.9 + index * 0.12,
                     }}
                     whileHover={{ x: -5 }}
-                    className="rounded-xl bg-white p-3 shadow-sm"
+                    className="rounded-xl border border-[#D7ECEF] bg-white p-3 shadow-sm"
                   >
-                    {index + 1}. {step}
+                    <span className="font-bold text-[#0E8F8A]">
+                      {index + 1}.
+                    </span>{" "}
+                    {step}
                   </motion.div>
                 ))}
               </div>
@@ -193,7 +194,7 @@ export default function Home() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.3, duration: 0.8 }}
-              className="mt-6 text-center text-xs tracking-[0.25em] text-gray-400"
+              className="mt-6 text-center text-xs tracking-[0.25em] text-[#94A3B8]"
             >
               Powered by Soheil Faramarzi
             </motion.p>
@@ -202,15 +203,17 @@ export default function Home() {
       </section>
 
       <section className="relative mx-auto max-w-6xl px-6 pb-20">
-        <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-200/50 backdrop-blur sm:p-8">
+        <div className="rounded-3xl border border-[#D7ECEF] bg-white p-6 shadow-sm sm:p-8">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-bold text-teal-700">How it works</p>
-              <h2 className="mt-2 text-3xl font-bold text-blue-950">
+              <p className="text-sm font-bold text-[#0E8F8A]">How it works</p>
+
+              <h2 className="mt-2 text-3xl font-bold text-[#102A43]">
                 مسیر آرام و مرحله‌به‌مرحله تا انتخاب پزشک
               </h2>
             </div>
-            <p className="max-w-2xl leading-8 text-slate-600">
+
+            <p className="max-w-2xl leading-8 text-[#64748B]">
               ابتدا شرح حال یا هدف مراجعه ثبت می‌شود؛ اگر درد موضعی وجود داشته
               باشد، نقشه بدن نمایش داده می‌شود. سپس مدارک اختیاری، تحلیل اولیه،
               اولویت ویزیت و انتخاب پزشک انجام می‌شود.
@@ -221,12 +224,13 @@ export default function Home() {
             {steps.map((step, index) => (
               <div
                 key={step}
-                className="rounded-3xl border border-slate-200 bg-slate-50 p-5"
+                className="rounded-3xl border border-[#D7ECEF] bg-[#F6FBFC] p-5"
               >
-                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-950 text-sm font-bold text-white">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#20C9C3] text-sm font-bold text-[#061923]">
                   {index + 1}
                 </span>
-                <p className="mt-4 text-sm leading-7 text-slate-700">{step}</p>
+
+                <p className="mt-4 text-sm leading-7 text-[#183B56]">{step}</p>
               </div>
             ))}
           </div>
@@ -248,10 +252,11 @@ export default function Home() {
             ].map((card) => (
               <div
                 key={card.title}
-                className="rounded-3xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-6 shadow-sm"
+                className="rounded-3xl border border-[#D7ECEF] bg-gradient-to-br from-[#EAFBF8] to-white p-6 shadow-sm"
               >
-                <h3 className="font-bold text-blue-950">{card.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600">
+                <h3 className="font-bold text-[#102A43]">{card.title}</h3>
+
+                <p className="mt-3 text-sm leading-7 text-[#64748B]">
                   {card.text}
                 </p>
               </div>

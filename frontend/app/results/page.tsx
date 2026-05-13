@@ -4,13 +4,25 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import FlowStepper from "@/components/FlowStepper";
 
-type DetectedFlow = "pain_flow" | "general_visit_flow" | "emergency_flow";
+type DetectedFlow =
+  | "pain_flow"
+  | "general_visit_flow"
+  | "emergency_flow"
+  | "veterinary_flow";
 
 type IntakeData = {
   chiefComplaint: string;
   detectedFlow: DetectedFlow;
   hasPain: boolean;
   requiresBodyMap: boolean;
+  profileType?: "human" | "pet";
+  suggestedSpecialty?: string;
+  relation?: string;
+  petType?: string;
+  breed?: string;
+  vaccinationStatus?: string;
+  petNotes?: string;
+  doctorSummary?: string;
   createdAt: string;
 };
 
@@ -38,6 +50,9 @@ type UploadedFileInfo = {
 
 type TriageResponse = {
   risk_label: string;
+  urgency?: "routine" | "soon" | "today" | "urgent";
+  profileType?: "human" | "pet";
+  detectedFlow?: DetectedFlow;
   visit_recommendation: string;
   suggested_specialty: string;
   doctor_summary: string;
@@ -151,6 +166,36 @@ function getVisitReasonRisk(reason?: string) {
   return "سبز";
 }
 
+function hasVeterinarySignal(value?: string | null) {
+  const text = value?.trim() ?? "";
+  return (
+    text.includes("دامپزشک") ||
+    text.includes("دامپزشکی") ||
+    text.includes("حیوان خانگی")
+  );
+}
+
+function isPetCase(intake: IntakeData | null, triageResult?: TriageResponse | null) {
+  const petRelations = ["سگ", "گربه", "پرنده", "خرگوش", "حیوان خانگی"];
+  const relation = intake?.relation?.trim() ?? "";
+
+  return Boolean(
+    intake?.profileType === "pet" ||
+      intake?.detectedFlow === "veterinary_flow" ||
+      triageResult?.profileType === "pet" ||
+      triageResult?.detectedFlow === "veterinary_flow" ||
+      hasVeterinarySignal(intake?.suggestedSpecialty) ||
+      hasVeterinarySignal(triageResult?.suggested_specialty) ||
+      hasVeterinarySignal(intake?.doctorSummary) ||
+      hasVeterinarySignal(triageResult?.doctor_summary) ||
+      petRelations.includes(relation) ||
+      intake?.petType?.trim() ||
+      intake?.breed?.trim() ||
+      intake?.vaccinationStatus?.trim() ||
+      intake?.petNotes?.trim()
+  );
+}
+
 function buildTriageResult(
   intake: IntakeData | null,
   bodyMap: BodyMapData | null,
@@ -159,6 +204,23 @@ function buildTriageResult(
 ): TriageResponse {
   const safetyNotice =
     "این خروجی صرفاً برای راهنمایی اولیه است و جایگزین تشخیص، معاینه یا نظر پزشک نیست. در صورت وجود علائم شدید مانند درد قفسه سینه، تنگی نفس، ضعف ناگهانی، بیهوشی یا خونریزی شدید، فوراً با اورژانس تماس بگیرید.";
+  const veterinarySafetyNotice =
+    "این مسیر جایگزین معاینه دامپزشک نیست. در علائم شدید یا تغییر ناگهانی وضعیت حیوان، با دامپزشک یا مرکز دامپزشکی تماس بگیرید. This path does not replace a veterinarian. For severe symptoms or sudden changes, contact a veterinarian or veterinary clinic.";
+
+  if (isPetCase(intake)) {
+    return {
+      risk_label: "سبز",
+      urgency: "routine",
+      profileType: "pet",
+      detectedFlow: "veterinary_flow",
+      visit_recommendation:
+        "در صورت ادامه علائم، یک نوبت دامپزشکی رزرو کنید.",
+      suggested_specialty: "دامپزشک",
+      doctor_summary:
+        "این مورد مربوط به حیوان خانگی است و برای بررسی بیشتر، مسیر دامپزشکی پیشنهاد می‌شود.",
+      safety_notice: veterinarySafetyNotice,
+    };
+  }
 
   if (intake?.detectedFlow === "emergency_flow" && !bodyMap && !visitReason) {
     return {
@@ -241,7 +303,7 @@ function getRiskStyles(label: string) {
       };
     default:
       return {
-        box: "border-gray-300 bg-gray-50",
+        box: "border-[#D7ECEF] bg-white",
         title: "text-gray-900",
         value: "text-gray-700",
       };
@@ -273,6 +335,11 @@ export default function ResultsPage() {
   const [documentAnalyses] = useState<DocumentAnalysis[]>(() =>
     safeReadStorage<DocumentAnalysis[]>("salamax_document_analyses") ?? []
   );
+  const [isFromApp] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      localStorage.getItem("salamax_from_app") === "true"
+  );
 
   const triageResult = useMemo(() => {
     const result = buildTriageResult(
@@ -289,21 +356,34 @@ export default function ResultsPage() {
     return result;
   }, [bodyMapData, intakeData, uploadedFiles, visitReasonData]);
 
+  const petCase = isPetCase(intakeData, triageResult);
   const riskStyles = getRiskStyles(triageResult.risk_label);
 
+  function handleReturnToApp() {
+    window.location.href = "salamax://home";
+    window.setTimeout(() => {
+      alert("برای بازگشت، اپلیکیشن سلامکس را باز کنید.");
+    }, 700);
+  }
+
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="min-h-screen bg-[#F6FBFC] px-4 py-8 text-[#183B56] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl">
         <FlowStepper currentStep="analysis" />
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
-        <span className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800">
+        {isFromApp && (
+          <span className="salamax-app-badge mb-4 rounded-full px-4 py-2 text-sm font-bold">
+            ادامه از اپلیکیشن سلامکس
+          </span>
+        )}
+      <div className="rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm sm:p-8">
+        <span className="inline-flex items-center gap-2 rounded-full border border-[rgba(95,221,218,0.18)] bg-[rgba(39,214,208,0.08)] px-4 py-2 text-sm font-bold text-[#27D6D0]">
           تحلیل اولیه Sandbox
         </span>
         <h1 className="mt-4 text-3xl font-bold text-blue-950">
           نتیجه تحلیل اولیه
         </h1>
 
-        <p className="mt-3 leading-8 text-gray-600">
+            <p className="mt-3 leading-8 text-[#64748B]">
           این نتیجه با منطق frontend sandbox ساخته می‌شود. این سامانه تشخیص
           قطعی پزشکی ارائه نمی‌دهد و صرفاً برای راهنمایی اولیه و هدایت مسیر
           مراجعه طراحی شده است.
@@ -330,7 +410,7 @@ export default function ResultsPage() {
             </p>
           </div>
 
-          <div className="rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-6 shadow-sm">
+          <div className="rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm">
             <h2 className="text-lg font-bold text-blue-900">
               زمان پیشنهادی مراجعه
             </h2>
@@ -351,7 +431,7 @@ export default function ResultsPage() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-3xl border border-slate-200 bg-slate-50 p-5 text-slate-700">
+        <div className="mt-6 rounded-3xl border border-[#D7ECEF] bg-white p-5 text-[#183B56] shadow-sm">
           <h2 className="font-bold text-blue-900">خلاصه داده‌های ورودی</h2>
           <div className="mt-3 grid gap-3 text-sm leading-7 md:grid-cols-2">
             <p>
@@ -360,7 +440,9 @@ export default function ResultsPage() {
             </p>
             <p>
               <span className="font-bold">نوع مسیر:</span>{" "}
-              {bodyMapData
+              {petCase
+                ? "مسیر دامپزشکی"
+                : bodyMapData
                 ? "مسیر درد"
                 : visitReasonData
                 ? "مسیر مراجعه عمومی"
@@ -378,7 +460,7 @@ export default function ResultsPage() {
         </div>
 
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <section className="rounded-2xl border border-gray-200 p-6">
+          <section className="rounded-2xl border border-[#D7ECEF] bg-white p-6 text-[#183B56]">
             <h2 className="text-xl font-bold text-blue-900">
               شرح اولیه و مسیر
             </h2>
@@ -390,7 +472,9 @@ export default function ResultsPage() {
               </p>
               <p>
                 <span className="font-bold">مسیر تشخیص‌داده‌شده:</span>{" "}
-                {bodyMapData
+                {petCase
+                  ? "مسیر دامپزشکی"
+                  : bodyMapData
                   ? "محل درد"
                   : visitReasonData
                   ? "دلیل مراجعه"
@@ -405,7 +489,7 @@ export default function ResultsPage() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-gray-200 p-6">
+          <section className="rounded-2xl border border-[#D7ECEF] bg-white p-6 text-[#183B56]">
             <h2 className="text-xl font-bold text-blue-900">
               اطلاعات محل درد
             </h2>
@@ -428,14 +512,14 @@ export default function ResultsPage() {
                 )}
               </div>
             ) : (
-              <p className="mt-4 leading-7 text-gray-600">
+              <p className="mt-4 leading-7 text-[#64748B]">
                 برای این مسیر، نقشه بدن لازم نبوده است.
               </p>
             )}
           </section>
         </div>
 
-        <section className="mt-8 rounded-2xl border border-gray-200 bg-slate-50 p-6">
+        <section className="mt-8 rounded-2xl border border-[#D7ECEF] bg-white p-6 text-[#183B56]">
           <h2 className="text-xl font-bold text-blue-900">
             خلاصه اولیه برای پزشک
           </h2>
@@ -457,17 +541,17 @@ export default function ResultsPage() {
           {documentAnalyses.length > 0 ? (
             <div className="mt-5 space-y-4">
               <div className="grid gap-3 text-sm md:grid-cols-3">
-                <div className="rounded-2xl bg-white p-4">
+                <div className="rounded-2xl border border-[#D7ECEF] bg-[#F6FBFC] p-4">
                   <span className="font-bold">تعداد مدارک تحلیل‌شده:</span>{" "}
                   {documentAnalyses.length}
                 </div>
-                <div className="rounded-2xl bg-white p-4">
+                <div className="rounded-2xl border border-[#D7ECEF] bg-[#F6FBFC] p-4">
                   <span className="font-bold">نوع مدارک:</span>{" "}
                   {documentAnalyses
                     .map((analysis) => analysis.documentType)
                     .join("، ")}
                 </div>
-                <div className="rounded-2xl bg-white p-4">
+                <div className="rounded-2xl border border-[#D7ECEF] bg-[#F6FBFC] p-4">
                   <span className="font-bold">موارد قابل توجه:</span>{" "}
                   {documentAnalyses.reduce(
                     (count, analysis) =>
@@ -480,7 +564,7 @@ export default function ResultsPage() {
               {documentAnalyses.map((analysis, index) => (
                 <article
                   key={`${analysis.fileName ?? analysis.documentType}-${index}`}
-                  className="rounded-2xl border border-teal-200 bg-white p-5"
+                  className="rounded-2xl border border-[#D7ECEF] bg-white p-5"
                 >
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <h3 className="font-bold text-blue-900">
@@ -518,23 +602,32 @@ export default function ResultsPage() {
         </section>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+          {isFromApp && (
+            <button
+              type="button"
+              onClick={handleReturnToApp}
+              className="rounded-2xl border border-teal-300 px-6 py-3 text-center text-teal-100 hover:bg-teal-500/10 sm:w-auto"
+            >
+              بازگشت به اپلیکیشن
+            </button>
+          )}
           <Link
             href="/visit-preference"
-            className="w-full rounded-2xl bg-blue-950 px-6 py-3 text-center text-white shadow-lg shadow-blue-950/15 hover:bg-blue-900 sm:w-auto"
+            className="w-full rounded-2xl bg-[#20C9C3] px-6 py-3 text-center font-bold text-[#102A43] shadow-sm hover:bg-[#0E8F8A] hover:text-white sm:w-auto"
           >
             تنظیم اولویت و انتخاب پزشک
           </Link>
 
           <Link
             href="/upload"
-            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
+            className="w-full rounded-2xl border border-[#D7ECEF] bg-white px-6 py-3 text-center text-[#183B56] hover:border-[#20C9C3] hover:bg-[#EAFBF8] sm:w-auto"
           >
             بازگشت به مدارک
           </Link>
 
           <Link
             href={getEditHref(bodyMapData, visitReasonData)}
-            className="w-full rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50 sm:w-auto"
+            className="w-full rounded-2xl border border-[#D7ECEF] bg-white px-6 py-3 text-center text-[#183B56] hover:border-[#20C9C3] hover:bg-[#EAFBF8] sm:w-auto"
           >
             اصلاح اطلاعات
           </Link>

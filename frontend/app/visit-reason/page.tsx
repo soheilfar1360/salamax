@@ -64,20 +64,20 @@ export default function VisitReasonPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-teal-50/40 px-4 py-8 sm:px-6 sm:py-10">
+    <main className="min-h-screen bg-[#F6FBFC] px-4 py-8 text-[#183B56] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl">
         <FlowStepper currentStep="route" />
-      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xl shadow-slate-200/50 sm:p-8">
+      <div className="rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm sm:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <span className="rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-800">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[rgba(95,221,218,0.18)] bg-[rgba(39,214,208,0.08)] px-4 py-2 text-sm font-bold text-[#27D6D0]">
               مسیر بدون درد موضعی
             </span>
-            <h1 className="mt-4 text-3xl font-bold text-blue-950">
+            <h1 className="mt-4 text-3xl font-bold text-[#102A43]">
               دلیل مراجعه
             </h1>
 
-            <p className="mt-3 max-w-2xl leading-8 text-gray-600">
+            <p className="mt-3 max-w-2xl leading-8 text-[#64748B]">
               این صفحه برای دلیل‌های مراجعه بدون درد موضعی است؛ مثل چکاپ،
               بررسی آزمایش، تمدید نسخه، پیگیری بیماری قبلی یا پرسش دارویی.
               گزینه‌ای را انتخاب کنید تا بدون نقشه بدن ادامه بدهیم.
@@ -86,13 +86,13 @@ export default function VisitReasonPage() {
 
           <Link
             href="/intake"
-            className="rounded-2xl border border-slate-300 px-5 py-3 text-center text-slate-700 hover:bg-slate-50"
+            className="rounded-2xl border border-[#D7ECEF] bg-white px-5 py-3 text-center text-[#183B56] hover:border-[#20C9C3] hover:bg-[#EAFBF8]"
           >
             بازگشت به پیش‌ویزیت
           </Link>
         </div>
 
-        <section className="mt-8 rounded-3xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 text-blue-900 shadow-sm">
+        <section className="mt-8 rounded-3xl border border-[#D7ECEF] bg-white p-5 text-[#183B56] shadow-sm">
           <h2 className="font-bold">شرح ثبت‌شده</h2>
           <p className="mt-3 leading-8">
             {intake?.chiefComplaint || "شرح اولیه‌ای در مرورگر پیدا نشد."}
@@ -110,8 +110,8 @@ export default function VisitReasonPage() {
                 onClick={() => setSelectedReason(reason)}
                 className={`rounded-3xl border p-5 text-right shadow-sm transition ${
                   isSelected
-                    ? "border-teal-400 bg-teal-50 text-teal-950 shadow-md"
-                    : "border-slate-200 bg-white text-slate-700 hover:border-teal-300 hover:bg-teal-50"
+                    ? "border-[#20C9C3] bg-[#EAFBF8] text-[#102A43] shadow-md"
+                    : "border-[#D7ECEF] bg-white text-[#183B56] hover:border-[#20C9C3] hover:bg-[#EAFBF8]"
                 }`}
               >
                 <span className="text-lg font-bold">{reason}</span>
@@ -130,10 +130,10 @@ export default function VisitReasonPage() {
             type="button"
             onClick={handleContinue}
             disabled={!selectedReason}
-            className={`rounded-xl px-6 py-3 text-center text-white transition ${
+            className={`rounded-xl px-6 py-3 text-center font-bold transition ${
               selectedReason
-                ? "bg-blue-950 shadow-lg shadow-blue-950/15 hover:bg-blue-900"
-                : "cursor-not-allowed bg-gray-400"
+                ? "bg-[#20C9C3] text-[#102A43] shadow-sm hover:bg-[#0E8F8A] hover:text-white"
+                : "cursor-not-allowed bg-slate-200 text-slate-500"
             }`}
           >
             ادامه به آپلود مدارک
@@ -141,7 +141,7 @@ export default function VisitReasonPage() {
 
           <Link
             href="/intake"
-            className="rounded-2xl border border-slate-300 px-6 py-3 text-center text-slate-700 hover:bg-slate-50"
+            className="rounded-2xl border border-[#D7ECEF] bg-white px-6 py-3 text-center text-[#183B56] hover:border-[#20C9C3] hover:bg-[#EAFBF8]"
           >
             اصلاح شرح اولیه
           </Link>

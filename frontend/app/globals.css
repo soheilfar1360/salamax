@@ -22,5 +22,97 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Vazirmatn, Arial, Helvetica, sans-serif;
+  direction: rtl;
+}
+
+.salamax-shell {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(39, 214, 208, 0.16), transparent 26rem),
+    linear-gradient(180deg, #061923 0%, #082432 48%, #061923 100%);
+  color: #f4f7f8;
+  direction: rtl;
+  text-align: right;
+}
+
+.salamax-card {
+  border: 1px solid rgba(95, 221, 218, 0.14);
+  background: rgba(9, 35, 48, 0.92);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  color: #f4f7f8;
+  backdrop-filter: blur(18px);
+}
+
+.salamax-panel {
+  border: 1px solid rgba(95, 221, 218, 0.14);
+  background: #0b2a3a;
+  color: #f4f7f8;
+}
+
+.salamax-muted {
+  color: #9fb3b7;
+}
+
+.salamax-primary {
+  background: #27d6d0;
+  color: #061923;
+}
+
+.salamax-app-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(39, 214, 208, 0.36);
+  background: rgba(39, 214, 208, 0.1);
+  color: #27d6d0;
+}
+
+.salamax-card .text-gray-500,
+.salamax-card .text-gray-600,
+.salamax-card .text-gray-700,
+.salamax-card .text-slate-600,
+.salamax-card .text-slate-700 {
+  color: #9fb3b7;
+}
+
+.salamax-card .text-blue-950,
+.salamax-card .text-blue-900,
+.salamax-card .text-teal-900 {
+  color: #f4f7f8;
+}
+
+.salamax-card .bg-white,
+.salamax-card .bg-slate-50,
+.salamax-card .bg-slate-50\/70 {
+  background: rgba(11, 42, 58, 0.72);
+}
+
+.salamax-card textarea,
+.salamax-card input {
+  background: rgba(6, 25, 35, 0.72);
+  color: #f4f7f8;
+}
+
+.salamax-card textarea::placeholder,
+.salamax-card input::placeholder {
+  color: #7f969b;
+}
+
+.salamax-card textarea:focus,
+.salamax-card input:focus {
+  border-color: #27d6d0;
+}
+
+.salamax-scroll-x {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.salamax-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+html,
+body {
+  font-family: var(--font-vazirmatn), Vazirmatn, Tahoma, sans-serif;
+  direction: rtl;
 }

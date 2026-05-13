@@ -9,7 +9,7 @@ type ReferralRouteContext = {
 
 export async function GET(_request: Request, context: ReferralRouteContext) {
   const { referralId } = await context.params;
-  const referral = getReferral(referralId);
+  const referral = await getReferral(referralId);
 
   if (!referral) {
     return NextResponse.json(
