@@ -1,0 +1,17 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/referrals/create/route": "app/api/referrals/create/route.js",
+  "/api/referrals/[referralId]/route": "app/api/referrals/[referralId]/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/body-map/page": "app/body-map/page.js",
+  "/debug/page": "app/debug/page.js",
+  "/doctor-match/page": "app/doctor-match/page.js",
+  "/booking/page": "app/booking/page.js",
+  "/intake/page": "app/intake/page.js",
+  "/page": "app/page.js",
+  "/results/page": "app/results/page.js",
+  "/summary/page": "app/summary/page.js",
+  "/upload/page": "app/upload/page.js",
+  "/visit-reason/page": "app/visit-reason/page.js",
+  "/visit-preference/page": "app/visit-preference/page.js"
+}

@@ -553,6 +553,9 @@ function IntakePageContent() {
               <span className="rounded-full border border-teal-200 bg-teal-50 px-4 py-2 text-sm font-bold text-teal-800">
                 Health AI Router
               </span>
+              <div className="mt-4 rounded-2xl border border-[#D7ECEF] bg-[#EAFBF8] px-4 py-3 text-sm leading-7 text-[#0E8F8A]">
+                من همراه سلامکس هستم؛ علائم را دقیق‌تر ثبت کنیم.
+              </div>
               <h1 className="mt-4 text-3xl font-bold text-[#102A43]">
                 پیش‌ویزیت هوشمند
               </h1>

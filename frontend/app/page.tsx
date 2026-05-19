@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -150,13 +149,15 @@ export default function Home() {
               transition={{ duration: 0.9, delay: 0.45 }}
               whileHover={{ scale: 1.04 }}
             >
-              <Image
-                src="/salamax-logo.png"
-                alt="SALAMAX Logo"
-                width={700}
-                height={700}
-                priority
-                className="mx-auto h-auto w-full max-w-md"
+              <video
+                src="/videos/salamax-owl-intro.mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                controls={false}
+                preload="auto"
+                className="mx-auto aspect-square w-full max-w-md object-contain"
               />
             </motion.div>
 
@@ -196,7 +197,7 @@ export default function Home() {
               transition={{ delay: 1.3, duration: 0.8 }}
               className="mt-6 text-center text-xs tracking-[0.25em] text-[#94A3B8]"
             >
-              Powered by Soheil Faramarzi
+              created by Soheil Faramarzi
             </motion.p>
           </motion.div>
         </motion.div>
