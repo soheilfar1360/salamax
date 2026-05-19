@@ -159,6 +159,9 @@ export default function Home() {
                 preload="auto"
                 className="mx-auto aspect-square w-full max-w-md object-contain"
               />
+              <p className="mt-4 text-center text-xs tracking-[0.25em] text-[#94A3B8]">
+                created by Soheil Faramarzi
+              </p>
             </motion.div>
 
             <motion.div
@@ -191,14 +194,6 @@ export default function Home() {
               </div>
             </motion.div>
 
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.3, duration: 0.8 }}
-              className="mt-6 text-center text-xs tracking-[0.25em] text-[#94A3B8]"
-            >
-              created by Soheil Faramarzi
-            </motion.p>
           </motion.div>
         </motion.div>
       </section>

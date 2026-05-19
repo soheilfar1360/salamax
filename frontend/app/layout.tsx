@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
+import OwlHelperBadge from "@/components/OwlHelperBadge";
 
 const vazirmatn = localFont({
   src: [
@@ -39,6 +40,7 @@ export default function RootLayout({
     <html lang="fa" dir="rtl" className={vazirmatn.variable}>
       <body>
         <Navbar />
+        <OwlHelperBadge />
         {children}
       </body>
     </html>
