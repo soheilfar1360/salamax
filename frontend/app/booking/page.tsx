@@ -231,6 +231,24 @@ export default function BookingPage() {
     ? "دامپزشک"
     : triageResult?.suggested_specialty;
   const trackingCode = bookingResponse?.booking_id ?? fallbackTrackingCode;
+  const [referralId] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("referralId") || "";
+  });
+  const [fromAppParam] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const sp = new URLSearchParams(window.location.search);
+    return (
+      sp.get("fromApp") === "1" ||
+      sp.get("source") === "app" ||
+      sp.get("returnToApp") === "true"
+    );
+  });
+  const [returnUrlParam] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("returnUrl") || "";
+  });
+  const isAppOrigin = isFromApp || fromAppParam || Boolean(referralId);
 
   useEffect(() => {
     if (!fallbackTrackingCode) {
@@ -293,9 +311,13 @@ export default function BookingPage() {
   }
 
   function handleReturnToApp() {
-    window.location.href = `salamax://result?bookingId=${encodeURIComponent(
+    const urlFromParam = returnUrlParam.trim();
+    const fallbackDeepLink = `salamax://booking-confirmation?code=${encodeURIComponent(
       trackingCode
-    )}`;
+    )}${referralId ? `&referralId=${encodeURIComponent(referralId)}` : ""}&status=confirmed`;
+    const target = urlFromParam || fallbackDeepLink;
+
+    window.location.href = target;
     window.setTimeout(() => {
       alert("برای بازگشت، اپلیکیشن سلامکس را باز کنید.");
     }, 700);
@@ -305,7 +327,7 @@ export default function BookingPage() {
     <main className="min-h-screen bg-[#F6FBFC] px-4 py-8 text-[#183B56] sm:px-6 sm:py-10">
       <div className="mx-auto max-w-5xl">
         <FlowStepper currentStep="booking" />
-        {isFromApp && (
+        {isAppOrigin && (
           <span className="salamax-app-badge mb-4 rounded-full px-4 py-2 text-sm font-bold">
             ادامه از اپلیکیشن سلامکس
           </span>
@@ -362,11 +384,11 @@ export default function BookingPage() {
             <div className="w-full max-w-md rounded-3xl border border-[#D7ECEF] bg-white p-6 text-[#183B56] shadow-sm">
               <h2 className="text-xl font-bold text-[#102A43]">رزرو شما ثبت شد</h2>
               <p className="mt-4 salamax-muted">کد پیگیری شما:</p>
-              <div className="mt-3 rounded-2xl border border-teal-300/30 bg-teal-400/10 px-5 py-4 text-center text-2xl font-bold tracking-widest text-teal-200">
+              <div className="mt-3 rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-center text-2xl font-bold tracking-widest text-[#102A43]">
                 {trackingCode}
               </div>
               {copyMessage && (
-                <p className="mt-3 text-sm text-teal-200">{copyMessage}</p>
+                <p className="mt-3 text-sm font-bold text-[#0E8F8A]">{copyMessage}</p>
               )}
               <div className="mt-6 grid gap-3">
                 <button
@@ -379,17 +401,17 @@ export default function BookingPage() {
                 <button
                   type="button"
                   onClick={() => setShowBookingModal(false)}
-                  className="rounded-2xl border border-teal-300/30 px-5 py-3 text-teal-100"
+                  className="rounded-2xl border border-teal-200 bg-white px-5 py-3 font-bold text-[#0E8F8A] hover:bg-teal-50"
                 >
                   مشاهده جزئیات
                 </button>
-                {isFromApp && (
+                {isAppOrigin && (
                   <button
                     type="button"
                     onClick={handleReturnToApp}
-                    className="rounded-2xl border border-teal-300/30 px-5 py-3 text-teal-100"
+                    className="rounded-2xl border border-teal-200 bg-teal-50 px-5 py-3 font-bold text-[#0E8F8A] hover:bg-teal-100/60"
                   >
-                    بازگشت به اپلیکیشن
+                    بازگشت به اپ سلامکس
                   </button>
                 )}
               </div>

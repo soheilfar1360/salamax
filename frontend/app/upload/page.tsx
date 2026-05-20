@@ -73,6 +73,16 @@ function safeReadStorage<T>(key: string): T | null {
   }
 }
 
+async function fileToBase64(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i += 1) {
+    binary += String.fromCharCode(bytes[i] ?? 0);
+  }
+  return btoa(binary);
+}
+
 function formatFileSize(size: number) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${Math.round(size / 1024)} KB`;
@@ -95,20 +105,6 @@ function getBackHref(
   if (visitReasonData) return "/visit-reason";
   if (intakeData?.detectedFlow === "emergency_flow") return "/intake";
   return "/intake";
-}
-
-function fileToBase64(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      resolve(result.split(",")[1] ?? "");
-    };
-
-    reader.onerror = () => reject(new Error("Could not read file."));
-    reader.readAsDataURL(file);
-  });
 }
 
 export default function UploadPage() {
@@ -153,6 +149,16 @@ export default function UploadPage() {
     setDocumentAnalyses([]);
     setDocumentAnalysisError("");
     localStorage.removeItem("salamax_document_analyses");
+
+    if (process.env.NODE_ENV === "development") {
+      selectedFiles.forEach((file) => {
+        console.info("[Document Agent] selected file", {
+          name: file.name,
+          type: file.type || "unknown",
+          size: file.size,
+        });
+      });
+    }
   }
 
   async function handleAnalyzeDocuments() {
@@ -164,45 +170,83 @@ export default function UploadPage() {
     try {
       setIsAnalyzingDocuments(true);
       setDocumentAnalysisError("");
-
-      const analyses = await Promise.all(
-        selectedFiles.map(async (file) => {
-          const fileBase64 = await fileToBase64(file);
-
-          const response = await fetch("/.netlify/functions/analyze-document", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              fileName: file.name,
-              fileType: file.type || "application/octet-stream",
-              fileBase64,
-              chiefComplaint: intakeData?.chiefComplaint,
-              selectedRegion: bodyMapData?.selectedRegion ?? null,
-              selectedLabel: bodyMapData?.selectedLabel ?? null,
-              painLevel: bodyMapData?.painLevel ?? null,
-              visitReason: visitReasonData?.reason ?? null,
-            }),
+      setDocumentAnalyses([]);
+      localStorage.removeItem("salamax_document_analyses");
+      const results: DocumentAnalysis[] = [];
+      for (const file of selectedFiles) {
+        if (process.env.NODE_ENV === "development") {
+          console.info("[Document Agent] selected file", {
+            name: file.name,
+            type: file.type || "unknown",
+            size: file.size,
           });
+        }
 
-          if (!response.ok) {
-            throw new Error("Document Agent request failed.");
-          }
-
-          const analysis = (await response.json()) as DocumentAnalysis;
-
-          return {
-            ...analysis,
+        const base64 = await fileToBase64(file);
+        const res = await fetch("/api/analyze-document", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             fileName: file.name,
-          };
-        })
-      );
+            fileType: file.type || "unknown",
+            fileBase64: base64,
+            fileSize: file.size,
+            chiefComplaint: intakeData?.chiefComplaint,
+            selectedRegion: bodyMapData?.selectedRegion ?? null,
+            selectedLabel: bodyMapData?.selectedLabel ?? null,
+            painLevel: bodyMapData?.painLevel ?? null,
+            visitReason: visitReasonData?.reason ?? null,
+          }),
+        });
 
-      setDocumentAnalyses(analyses);
-      localStorage.setItem(
-        "salamax_document_analyses",
-        JSON.stringify(analyses)
+        if (process.env.NODE_ENV === "development") {
+          console.info("[Document Agent] endpoint status", {
+            endpoint: "/api/analyze-document",
+            ok: res.ok,
+            status: res.status,
+          });
+        }
+
+        if (!res.ok) {
+          let message =
+            "سرویس تحلیل مدارک هنوز به بک‌اند متصل نشده است. می‌توانید بدون تحلیل مدارک ادامه دهید.";
+          try {
+            const errJson = (await res.json()) as any;
+            if (typeof errJson?.message === "string" && errJson.message.trim()) {
+              message = errJson.message;
+            } else if (typeof errJson?.error === "string" && errJson.error.trim()) {
+              message = errJson.error;
+            }
+          } catch {
+            // ignore
+          }
+          throw new Error(message);
+        }
+
+        const analysis = (await res.json()) as DocumentAnalysis;
+        results.push({ ...analysis, fileName: file.name });
+      }
+
+      setDocumentAnalyses(results);
+      localStorage.setItem("salamax_document_analyses", JSON.stringify(results));
+      return;
+
+      if (process.env.NODE_ENV === "development") {
+        selectedFiles.forEach((file) => {
+          console.info("[Document Agent] selected file", {
+            name: file.name,
+            type: file.type || "unknown",
+            size: file.size,
+          });
+        });
+        console.info("[Document Agent] analysis endpoint unavailable", {
+          status: "unavailable",
+          reason: "No Cloudflare/Next document analysis API route is configured.",
+        });
+      }
+
+      setDocumentAnalysisError(
+        "سرویس تحلیل مدارک هنوز به بک‌اند متصل نشده است. می‌توانید بدون تحلیل مدارک ادامه دهید."
       );
     } catch {
       setDocumentAnalysisError(
@@ -439,14 +483,25 @@ export default function UploadPage() {
                           <span className="font-bold text-[#0E8F8A]">
                             خلاصه:
                           </span>{" "}
-                          {analysis.plainLanguageSummary}
+                          {(analysis as any).plainLanguageSummary ??
+                            (analysis as any).summary ??
+                            (analysis as any).extractedTextSummary ?? (
+                              <span className="text-[#64748B]">
+                                خلاصه‌ای برای نمایش آماده نیست.
+                              </span>
+                            )}
                         </p>
 
                         <p>
                           <span className="font-bold text-[#0E8F8A]">
                             اثر احتمالی روی تریاژ:
                           </span>{" "}
-                          {analysis.triageImpact}
+                          {(analysis as any).triageImpact ??
+                            (analysis as any).doctorFacingSummary ?? (
+                              <span className="text-[#64748B]">
+                                اثر مشخصی گزارش نشده است.
+                              </span>
+                            )}
                         </p>
                       </div>
 
@@ -455,27 +510,39 @@ export default function UploadPage() {
                           موارد غیرعادی
                         </h4>
 
-                        {analysis.abnormalFindings.length > 0 ? (
+                        {(
+                          ((analysis as any).abnormalFindings ??
+                            (analysis as any).possibleConcerns ??
+                            []) as any[]
+                        ).length > 0 ? (
                           <div className="mt-3 grid gap-3">
-                            {analysis.abnormalFindings.map((finding) => (
+                            {(
+                              ((analysis as any).abnormalFindings ??
+                                (analysis as any).possibleConcerns ??
+                                []) as any[]
+                            ).map((finding: any, findingIndex: number) => (
                               <div
-                                key={`${finding.name}-${finding.value}`}
+                                key={`abnormal-${index}-${findingIndex}`}
                                 className="rounded-xl border border-[#D7ECEF] bg-[#F6FBFC] p-3 text-sm text-[#183B56]"
                               >
                                 <p className="font-bold">
-                                  {finding.name}: {finding.value}
+                                  {typeof finding === "string"
+                                    ? finding
+                                    : finding?.name || finding?.value
+                                      ? `${finding?.name ? `${finding.name}: ` : ""}${finding?.value ?? ""}`
+                                      : "مورد"}
                                 </p>
 
                                 <p className="mt-1">
-                                  وضعیت: {finding.status}
+                                  {finding?.status ? `وضعیت: ${finding.status}` : ""}
                                   {finding.referenceRange
                                     ? ` · محدوده مرجع: ${finding.referenceRange}`
                                     : ""}
                                 </p>
 
-                                <p className="mt-1 text-[#64748B]">
-                                  {finding.note}
-                                </p>
+                                {finding?.note ? (
+                                  <p className="mt-1 text-[#64748B]">{finding.note}</p>
+                                ) : null}
                               </div>
                             ))}
                           </div>

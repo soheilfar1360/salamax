@@ -80,6 +80,10 @@ type DocumentAnalysis = {
   fileName?: string;
 };
 
+function safeDocumentAnalyses(value: unknown): any[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function safeReadStorage<T>(key: string): T | null {
   if (typeof window === "undefined") return null;
 
@@ -332,8 +336,8 @@ export default function ResultsPage() {
   const [uploadedFiles] = useState<UploadedFileInfo[]>(() =>
     safeReadStorage<UploadedFileInfo[]>("salamax_uploaded_files") ?? []
   );
-  const [documentAnalyses] = useState<DocumentAnalysis[]>(() =>
-    safeReadStorage<DocumentAnalysis[]>("salamax_document_analyses") ?? []
+  const [documentAnalyses] = useState<any[]>(() =>
+    safeDocumentAnalyses(safeReadStorage<unknown>("salamax_document_analyses"))
   );
   const [isFromApp] = useState(
     () =>
@@ -553,24 +557,29 @@ export default function ResultsPage() {
                 </div>
                 <div className="rounded-2xl border border-[#D7ECEF] bg-[#F6FBFC] p-4">
                   <span className="font-bold">موارد قابل توجه:</span>{" "}
-                  {documentAnalyses.reduce(
-                    (count, analysis) =>
-                      count + analysis.abnormalFindings.length,
-                    0
-                  )}
+                  {documentAnalyses.reduce((count, analysis) => {
+                    const abnormalFindings = Array.isArray(
+                      (analysis as any)?.abnormalFindings
+                    )
+                      ? (analysis as any).abnormalFindings
+                      : Array.isArray((analysis as any)?.possibleConcerns)
+                        ? (analysis as any).possibleConcerns
+                        : [];
+                    return count + abnormalFindings.length;
+                  }, 0)}
                 </div>
               </div>
 
               {documentAnalyses.map((analysis, index) => (
                 <article
-                  key={`${analysis.fileName ?? analysis.documentType}-${index}`}
+                  key={`${(analysis as any)?.fileName ?? (analysis as any)?.documentType ?? "doc"}-${index}`}
                   className="rounded-2xl border border-[#D7ECEF] bg-white p-5"
                 >
                   <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <h3 className="font-bold text-blue-900">
-                      {analysis.fileName ?? `مدرک ${index + 1}`}
+                      {(analysis as any)?.fileName ?? `مدرک ${index + 1}`}
                     </h3>
-                    {analysis.isMock && (
+                    {(analysis as any)?.isMock && (
                       <span className="w-fit rounded-full bg-amber-100 px-4 py-2 text-sm font-bold text-amber-800">
                         Mock Analysis
                       </span>
@@ -578,11 +587,14 @@ export default function ResultsPage() {
                   </div>
                   <p className="mt-3 leading-8 text-gray-700">
                     <span className="font-bold">خلاصه پزشک:</span>{" "}
-                    {analysis.doctorFacingSummary}
+                    {(analysis as any)?.doctorFacingSummary ??
+                      (analysis as any)?.summary ??
+                      (analysis as any)?.extractedTextSummary ??
+                      "-"}
                   </p>
                   <p className="mt-2 leading-8 text-gray-700">
                     <span className="font-bold">اثر روی تریاژ:</span>{" "}
-                    {analysis.triageImpact}
+                    {(analysis as any)?.triageImpact ?? "-"}
                   </p>
                 </article>
               ))}
